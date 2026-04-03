@@ -72,7 +72,7 @@ const RegisterPage = () => {
           <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.2)]">
             <span className="text-zinc-950 font-bold text-xl tracking-tighter">Z</span>
           </div>
-          <span className="text-white text-xl font-semibold tracking-tight">ZeroWaste</span>
+          <span className="text-white text-xl font-semibold tracking-tight">ResQFood</span>
         </div>
 
         <div className="relative z-10 max-w-xl mt-auto">
@@ -112,7 +112,7 @@ const RegisterPage = () => {
             <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
               <span className="text-zinc-950 font-bold text-xl tracking-tighter">Z</span>
             </div>
-            <span className="text-zinc-900 text-2xl font-semibold tracking-tight">ZeroWaste</span>
+            <span className="text-zinc-900 text-2xl font-semibold tracking-tight">ResQFood</span>
           </div>
 
           <div className="mb-8">

@@ -77,7 +77,7 @@ const LoginPage = () => {
             <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
               <span className="text-zinc-950 font-bold text-xl tracking-tighter">Z</span>
             </div>
-            <span className="text-zinc-900 text-2xl font-semibold tracking-tight">ZeroWaste</span>
+            <span className="text-zinc-900 text-2xl font-semibold tracking-tight">ResQFood</span>
           </div>
 
           <div className="mb-8">
@@ -144,7 +144,7 @@ const LoginPage = () => {
           </p>
 
           {/* Clean Demo Credentials Box */}
-          <div className="mt-10 border border-zinc-200 bg-white/50 rounded-xl p-5 shadow-sm">
+          {/* <div className="mt-10 border border-zinc-200 bg-white/50 rounded-xl p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">Test Credentials</span>
@@ -175,7 +175,7 @@ const LoginPage = () => {
               <span>Domain: @resqfood.com</span>
               <span>Pass: password123</span>
             </div>
-          </div>
+          </div> */}
 
         </div>
       </div>
