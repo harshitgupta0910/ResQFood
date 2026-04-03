@@ -137,7 +137,7 @@ export const getRoleLabel = (role) => {
     admin: 'Admin',
     donor: 'Donor',
     ngo: 'NGO',
-    volunteer: 'Volunteer',
+
     buyer: 'Buyer',
   };
   return labels[role] || role;
@@ -148,7 +148,6 @@ export const getRoleColor = (role) => {
     admin: 'bg-purple-100 text-purple-700',
     donor: 'bg-blue-100 text-blue-700',
     ngo: 'bg-emerald-100 text-emerald-700',
-    volunteer: 'bg-amber-100 text-amber-700',
     buyer: 'bg-gray-100 text-gray-700',
   };
   return colors[role] || 'bg-gray-100 text-gray-700';

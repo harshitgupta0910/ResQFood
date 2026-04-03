@@ -149,9 +149,9 @@ const updateListing = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Listing not found' });
     }
 
-    // Only donor or admin can update
-    if (listing.donorId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    // Only donor, ngo or admin can update
+    if (listing.donorId.toString() !== req.user._id.toString() && req.user.role !== 'admin' && req.user.role !== 'ngo') {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this listing' });
     }
 
     const updates = { ...req.body };

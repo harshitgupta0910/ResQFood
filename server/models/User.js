@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'donor', 'ngo', 'volunteer', 'buyer'],
+      enum: ['admin', 'donor', 'ngo', 'buyer'],
       default: 'donor',
     },
     phone: {
@@ -44,6 +44,19 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    suspendUntil: {
+      type: Date,
+      default: null,
+    },
+    activityLogs: [{
+      action: String,
+      timestamp: { type: Date, default: Date.now },
+      ip: String,
+    }],
     location: {
       type: {
         type: String,

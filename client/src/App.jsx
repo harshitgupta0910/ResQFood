@@ -21,22 +21,18 @@ import NgoDashboard from './pages/ngo/NgoDashboard';
 import LiveFeed from './pages/ngo/LiveFeed';
 import MyClaims from './pages/ngo/MyClaims';
 
-// Volunteer Pages
-import VolunteerDashboard from './pages/volunteer/VolunteerDashboard';
-import ActivePickup from './pages/volunteer/ActivePickup';
-import PickupHistory from './pages/volunteer/PickupHistory';
-
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
-import ListingMonitor from './pages/admin/ListingMonitor';
+import ListingModeration from './pages/admin/ListingModeration';
+import ClaimAllocation from './pages/admin/ClaimAllocation';
+import ComplaintSystem from './pages/admin/ComplaintSystem';
 
 const getRoleHomeRoute = (role) => {
   const roleRoutes = {
     admin: '/admin',
     donor: '/donor',
     ngo: '/ngo',
-    volunteer: '/volunteer',
     buyer: '/unauthorized',
   };
 
@@ -87,19 +83,17 @@ const App = () => {
 
             {/* NGO Routes */}
             <Route path="/ngo" element={<ProtectedRoute roles={['ngo', 'admin']}><NgoDashboard /></ProtectedRoute>} />
-            <Route path="/ngo/feed" element={<ProtectedRoute roles={['ngo', 'admin']}><LiveFeed /></ProtectedRoute>} />
-            <Route path="/ngo/feed/:id" element={<ProtectedRoute roles={['ngo', 'admin']}><ListingDetail /></ProtectedRoute>} /> {/* Reusing detail page */}
+            <Route path="/ngo/live" element={<ProtectedRoute roles={['ngo', 'admin']}><LiveFeed /></ProtectedRoute>} />
+            <Route path="/ngo/live/:id" element={<ProtectedRoute roles={['ngo', 'admin']}><ListingDetail /></ProtectedRoute>} /> {/* Reusing detail page */}
             <Route path="/ngo/claims" element={<ProtectedRoute roles={['ngo', 'admin']}><MyClaims /></ProtectedRoute>} />
 
-            {/* Volunteer Routes */}
-            <Route path="/volunteer" element={<ProtectedRoute roles={['volunteer', 'admin']}><VolunteerDashboard /></ProtectedRoute>} />
-            <Route path="/volunteer/active" element={<ProtectedRoute roles={['volunteer', 'admin']}><ActivePickup /></ProtectedRoute>} />
-            <Route path="/volunteer/history" element={<ProtectedRoute roles={['volunteer', 'admin']}><PickupHistory /></ProtectedRoute>} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><UserManagement /></ProtectedRoute>} />
-            <Route path="/admin/listings" element={<ProtectedRoute roles={['admin']}><ListingMonitor /></ProtectedRoute>} />
+            <Route path="/admin/listings" element={<ProtectedRoute roles={['admin']}><ListingModeration /></ProtectedRoute>} />
+            <Route path="/admin/claims" element={<ProtectedRoute roles={['admin']}><ClaimAllocation /></ProtectedRoute>} />
+            <Route path="/admin/complaints" element={<ProtectedRoute roles={['admin']}><ComplaintSystem /></ProtectedRoute>} />
 
           </Route>
           

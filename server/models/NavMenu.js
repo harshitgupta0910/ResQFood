@@ -1,0 +1,1 @@
+const mongoose = require('mongoose'); const navMenuSchema = new mongoose.Schema({ role: { type: String, required: true }, items: [{ path: String, icon: String, label: String }] }, { timestamps: true }); module.exports = mongoose.model('NavMenu', navMenuSchema);

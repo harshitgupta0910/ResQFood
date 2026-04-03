@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { HiHome, HiPlusCircle, HiClipboardList, HiUsers, HiTruck, HiLightningBolt, HiLogout, HiX, HiShieldCheck } from 'react-icons/hi';
+import { HiHome, HiPlusCircle, HiClipboardList, HiUsers, HiLightningBolt, HiLogout, HiX, HiShieldCheck, HiScale, HiExclamationCircle } from 'react-icons/hi';
 import useAuthStore from '../../store/authStore';
 
 const roleNavItems = {
@@ -10,18 +10,15 @@ const roleNavItems = {
   ],
   ngo: [
     { path: '/ngo', icon: HiHome, label: 'Overview' },
-    { path: '/ngo/feed', icon: HiLightningBolt, label: 'Live Feed' },
+    { path: '/ngo/live', icon: HiLightningBolt, label: 'Live Feed' },
     { path: '/ngo/claims', icon: HiClipboardList, label: 'My Claims' },
   ],
-  volunteer: [
-    { path: '/volunteer', icon: HiHome, label: 'Overview' },
-    { path: '/volunteer/active', icon: HiTruck, label: 'Active Pickups' },
-    { path: '/volunteer/history', icon: HiClipboardList, label: 'Delivery Log' },
-  ],
   admin: [
-    { path: '/admin', icon: HiHome, label: 'Dashboard' },
-    { path: '/admin/users', icon: HiUsers, label: 'Users' },
-    { path: '/admin/listings', icon: HiClipboardList, label: 'Listing Monitor' },
+    { path: '/admin', icon: HiHome, label: 'Live Monitoring' },
+    { path: '/admin/users', icon: HiUsers, label: 'User & Org Management' },
+    { path: '/admin/listings', icon: HiShieldCheck, label: 'Listing Moderation' },
+    { path: '/admin/claims', icon: HiScale, label: 'Claim Allocation' },
+    { path: '/admin/complaints', icon: HiExclamationCircle, label: 'Complaints & Safety' },
   ],
 };
 

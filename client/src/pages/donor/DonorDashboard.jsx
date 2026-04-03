@@ -62,7 +62,6 @@ const DonorDashboard = () => {
           value={stats.total}
           icon={<HiChartBar />}
           color="primary"
-          trend="+12% this month"
           trendUp={true}
         />
         <StatCard

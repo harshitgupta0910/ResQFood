@@ -15,7 +15,7 @@ const LoginPage = () => {
     try {
       const { user } = await login({ email, password });
       toast.success(`Welcome back, ${user.name}!`);
-      const roleRoutes = { admin: '/admin', donor: '/donor', ngo: '/ngo', volunteer: '/volunteer' };
+      const roleRoutes = { admin: '/admin', donor: '/donor', ngo: '/ngo' };
       navigate(roleRoutes[user.role] || '/');
     } catch (error) {
       toast.error(error.message || 'Login failed');
@@ -46,7 +46,7 @@ const LoginPage = () => {
             <span className="text-emerald-400">Eliminate waste.</span>
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed mb-12">
-            The enterprise-grade platform connecting food donors with NGOs and volunteers in real-time. Fair, fast, and measurable impact.
+            The enterprise-grade platform connecting food donors with NGOs in real-time. Fair, fast, and measurable impact.
           </p>
 
           <div className="flex items-center gap-8 border-t border-zinc-800/50 pt-8">
@@ -155,7 +155,6 @@ const LoginPage = () => {
                 { role: 'Admin', email: 'admin' },
                 { role: 'Donor', email: 'donor' },
                 { role: 'NGO', email: 'ngo' },
-                { role: 'Volunteer', email: 'volunteer' },
               ].map((cred) => (
                 <div 
                   key={cred.role} 

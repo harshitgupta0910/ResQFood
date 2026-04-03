@@ -12,7 +12,7 @@ router.use(protect);
 router.post('/', authorize('donor', 'admin'), upload.array('photos', 5), createListing);
 router.get('/', getListings);
 router.get('/:id', getListingById);
-router.patch('/:id', authorize('donor', 'admin'), updateListing);
+router.patch('/:id', authorize('donor', 'admin', 'ngo'), updateListing);
 router.delete('/:id', authorize('donor', 'admin'), deleteListing);
 
 // Claim route

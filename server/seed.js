@@ -4,6 +4,9 @@ const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 const Organization = require('./models/Organization');
 const FoodListing = require('./models/FoodListing');
+const Claim = require('./models/Claim');
+const Complaint = require('./models/Complaint');
+const Pickup = require('./models/Pickup');
 
 const seedData = async () => {
   try {
@@ -14,6 +17,9 @@ const seedData = async () => {
     await User.deleteMany({});
     await Organization.deleteMany({});
     await FoodListing.deleteMany({});
+    await Claim.deleteMany({});
+    await Complaint.deleteMany({});
+    await Pickup.deleteMany({});
 
     // Create organizations
     const ngoOrg = await Organization.create({
@@ -40,8 +46,8 @@ const seedData = async () => {
     // Create users (password will be hashed by pre-save hook)
     const admin = await User.create({
       name: 'Admin User',
-      email: 'admin@resqfood.com',
-      password: 'admin123',
+      email: 'admin@gmail.com',
+      password: 'Admin@123',
       role: 'admin',
       phone: '+91-9999999999',
       isVerified: true,
@@ -68,16 +74,6 @@ const seedData = async () => {
       isVerified: true,
       organizationId: ngoOrg._id,
       location: { type: 'Point', coordinates: [72.8777, 19.0760], address: '123 Charity Lane, Mumbai' },
-    });
-
-    const volunteer = await User.create({
-      name: 'Amit Kumar',
-      email: 'volunteer@resqfood.com',
-      password: 'volunteer123',
-      role: 'volunteer',
-      phone: '+91-9666666666',
-      isVerified: true,
-      location: { type: 'Point', coordinates: [72.8500, 19.0500], address: 'Central Mumbai' },
     });
 
     // Create sample food listings
@@ -129,10 +125,9 @@ const seedData = async () => {
     console.log('\n✅ Seed data created successfully!\n');
     console.log('Test Accounts:');
     console.log('─────────────────────────────────');
-    console.log('Admin:     admin@resqfood.com / admin123');
+    console.log('Admin:     admin@gmail.com / Admin@123');
     console.log('Donor:     donor@resqfood.com / donor123');
     console.log('NGO:       ngo@resqfood.com / ngo12345');
-    console.log('Volunteer: volunteer@resqfood.com / volunteer123');
     console.log('─────────────────────────────────');
     console.log(`Created ${listings.length} sample listings\n`);
 

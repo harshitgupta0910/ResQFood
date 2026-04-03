@@ -90,7 +90,7 @@ const NgoDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 stagger-children">
         <StatCard icon={<HiLightningBolt />} label="Available Now" value={availableListings.length} />
         <StatCard icon={<HiClipboardCheck />} label="My Claims" value={claimStats.total} />
-        <StatCard icon={<HiHeart />} label="Meals Received" value={claimStats.approved} trendUp trend="This month" />
+        <StatCard icon={<HiHeart />} label="Meals Received" value={claimStats.approved} />
       </div>
 
       {/* Live Feed */}
@@ -100,7 +100,7 @@ const NgoDashboard = () => {
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             Live Feed
           </h2>
-          <Link to="/ngo/feed" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+          <Link to="/ngo/live" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
             View all →
           </Link>
         </div>
@@ -143,7 +143,7 @@ const NgoDashboard = () => {
                     >
                       Claim Now
                     </Button>
-                    <Link to={`/ngo/feed/${listing._id}`}>
+                    <Link to={`/ngo/live/${listing._id}`}>
                       <Button size="sm" variant="secondary">Details</Button>
                     </Link>
                   </div>
@@ -164,3 +164,4 @@ const NgoDashboard = () => {
 };
 
 export default NgoDashboard;
+

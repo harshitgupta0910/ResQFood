@@ -1,159 +1,161 @@
 import { useState, useEffect } from 'react';
-import { usersAPI } from '../../services/api';
+import { adminAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
-import { HiSearch, HiShieldCheck, HiCheckCircle } from 'react-icons/hi';
-import { formatDate, getRoleLabel, getRoleColor } from '../../utils/helpers';
 import toast from 'react-hot-toast';
+import { HiCheck, HiX, HiBan, HiOutlineShieldCheck, HiSearch } from 'react-icons/hi';
 
 const UserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({});
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filterRole, setFilterRole] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const params = { page, limit: 15 };
-      if (search) params.search = search;
-      if (roleFilter) params.role = roleFilter;
-      const res = await usersAPI.getAll(params);
-      setUsers(res.data || []);
-      setPagination(res.pagination || {});
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchUsers = async () => {
+        try {
+            setLoading(true);
+            const res = await adminAPI.getUsers({ role: filterRole !== 'all' ? filterRole : undefined, search: searchQuery });
+            setUsers(res.data.users);
+        } catch (err) {
+            toast.error('Failed to load users');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  useEffect(() => { fetchUsers(); }, [page, roleFilter]);
+    useEffect(() => {
+        fetchUsers();
+    }, [filterRole]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPage(1);
-    fetchUsers();
-  };
+    const handleOrgVerify = async (orgId, status) => {
+        try {
+            await adminAPI.verifyOrganization(orgId, status);
+            toast.success(`Organization ${status}`);
+            fetchUsers();
+        } catch (err) {
+            toast.error('Failed to update organization status');
+        }
+    };
 
-  const handleVerify = async (userId) => {
-    try {
-      await usersAPI.verify(userId);
-      toast.success('User verified!');
-      fetchUsers();
-    } catch (err) {
-      toast.error('Failed to verify');
-    }
-  };
+    const handleUserBan = async (userId, currentBanStatus) => {
+        try {
+            await adminAPI.updateUserStatus(userId, { isBanned: !currentBanStatus });
+            toast.success(`User ${!currentBanStatus ? 'banned' : 'unbanned'}`);
+            fetchUsers();
+        } catch (err) {
+            toast.error('Failed to update user ban status');
+        }
+    };
 
-  return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-surface-900">User Management</h1>
-        <p className="text-surface-500 mt-2">{pagination.total || 0} registered users</p>
-      </div>
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">User & Organization Management</h1>
+                    <p className="text-gray-500 mt-1">Verify NGOs, manage donors, and oversee platform access.</p>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <div className="relative">
+                        <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Search email or name..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
+                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                </div>
+            </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-5">
-        <form onSubmit={handleSearch} className="flex-1">
-          <Input
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            icon={<HiSearch />}
-          />
-        </form>
-        <div className="flex flex-wrap gap-2 md:gap-3">
-          {['', 'donor', 'ngo', 'volunteer', 'admin'].map((r) => (
-            <button
-              key={r}
-              onClick={() => { setRoleFilter(r); setPage(1); }}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                roleFilter === r ? 'bg-primary-600 text-white' : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
-              }`}
-            >
-              {r ? getRoleLabel(r) : 'All'}
-            </button>
-          ))}
+            {/* Quick Filters */}
+            <div className="flex flex-wrap gap-2">
+              {['all', 'donor', 'ngo'].map(role => (
+                 <button 
+                  key={role}
+                  onClick={() => setFilterRole(role)}
+                  className={`px-4 py-2 rounded-lg capitalize text-sm font-medium transition-colors ${
+                      filterRole === role ? 'bg-primary-900 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
+                 >
+                  {role}s
+                 </button>
+              ))}
+            </div>
+
+            <Card className="overflow-hidden">
+                {loading ? <PageLoader /> : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-gray-50 text-gray-600">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold">User</th>
+                                    <th className="px-6 py-4 font-semibold">Role</th>
+                                    <th className="px-6 py-4 font-semibold">Organization</th>
+                                    <th className="px-6 py-4 font-semibold">Verification</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {users.map(user => (
+                                    <tr key={user._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-gray-900">{user.name}</div>
+                                            <div className="text-gray-500 text-xs">{user.email}</div>
+                                            {user.isBanned && <Badge variant="error" className="mt-1">Banned</Badge>}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <Badge variant={user.role === 'donor' ? 'info' : 'success'} className="capitalize">{user.role}</Badge>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {user.organizationId ? (
+                                                <div>
+                                                    <span className="font-medium text-gray-800">{user.organizationId.name}</span>
+                                                    <div className="text-xs text-gray-500 uppercase tracking-widest">{user.organizationId.type}</div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400 italic">No Organization</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {user.organizationId?.status === 'pending' ? (
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleOrgVerify(user.organizationId._id, 'approved')} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md" title="Approve">
+                                                        <HiCheck className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleOrgVerify(user.organizationId._id, 'rejected')} className="text-rose-600 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md" title="Reject">
+                                                        <HiX className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                 user.organizationId ? <Badge variant={user.organizationId.status === 'approved' ? 'success' : 'error'} className="capitalize">{user.organizationId.status}</Badge> : '-'
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-right space-x-2">
+                                            <button 
+                                              onClick={() => handleUserBan(user._id, user.isBanned)} 
+                                              className={`p-2 rounded-lg transition-colors ${user.isBanned ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
+                                              title={user.isBanned ? "Unban User" : "Ban User"}
+                                            >
+                                                {user.isBanned ? <HiOutlineShieldCheck className="w-5 h-5" /> : <HiBan className="w-5 h-5" />}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {users.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">No users found.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </Card>
         </div>
-      </div>
-
-      {/* Table */}
-      {loading ? <PageLoader /> : (
-        <Card padding="p-0" className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-surface-200 bg-surface-50">
-                  <th className="px-5 lg:px-6 py-4 text-left text-xs font-semibold text-surface-500 uppercase">User</th>
-                  <th className="px-5 lg:px-6 py-4 text-left text-xs font-semibold text-surface-500 uppercase">Role</th>
-                  <th className="px-5 lg:px-6 py-4 text-left text-xs font-semibold text-surface-500 uppercase">Status</th>
-                  <th className="px-5 lg:px-6 py-4 text-left text-xs font-semibold text-surface-500 uppercase">Joined</th>
-                  <th className="px-5 lg:px-6 py-4 text-right text-xs font-semibold text-surface-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user._id} className="border-b border-surface-100 hover:bg-surface-50 transition-colors">
-                    <td className="px-5 lg:px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white text-sm font-bold">
-                          {user.name?.charAt(0)?.toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-surface-800 text-sm">{user.name}</p>
-                          <p className="text-xs text-surface-500">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 lg:px-6 py-4">
-                      <Badge className={getRoleColor(user.role)} size="xs">
-                        {getRoleLabel(user.role)}
-                      </Badge>
-                    </td>
-                    <td className="px-5 lg:px-6 py-4">
-                      {user.isVerified ? (
-                        <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                          <HiCheckCircle /> Verified
-                        </span>
-                      ) : (
-                        <span className="text-xs text-amber-600 font-medium">Pending</span>
-                      )}
-                    </td>
-                    <td className="px-5 lg:px-6 py-4 text-sm text-surface-500">{formatDate(user.createdAt)}</td>
-                    <td className="px-5 lg:px-6 py-4 text-right">
-                      {!user.isVerified && (
-                        <Button size="sm" variant="outline" onClick={() => handleVerify(user._id)}>
-                          <HiShieldCheck className="mr-1" /> Verify
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {users.length === 0 && (
-            <div className="py-12 text-center text-surface-400 text-sm">No users found</div>
-          )}
-        </Card>
-      )}
-
-      {pagination.pages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-          <span className="px-4 py-2 text-sm text-surface-500">Page {page} of {pagination.pages}</span>
-          <Button variant="secondary" size="sm" disabled={page >= pagination.pages} onClick={() => setPage(page + 1)}>Next</Button>
-        </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default UserManagement;

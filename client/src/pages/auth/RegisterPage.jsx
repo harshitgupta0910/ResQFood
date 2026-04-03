@@ -43,17 +43,14 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.role !== 'volunteer' && (!formData.organizationName || !formData.address || !formData.phone)) {
+    if (!formData.organizationName || !formData.address || !formData.phone) {
        return toast.error('Please fill in all organization details');
-    }
-    if (formData.role === 'volunteer' && !formData.phone) {
-       return toast.error('Please provide a contact number');
     }
 
     try {
       const { user } = await register(formData);
       toast.success(`Account created successfully! Welcome ${user.name}`);
-      const roleRoutes = { admin: '/admin', donor: '/donor', ngo: '/ngo', volunteer: '/volunteer' };
+      const roleRoutes = { admin: '/admin', donor: '/donor', ngo: '/ngo' };
       navigate(roleRoutes[user.role] || '/');
     } catch (error) {
       toast.error(error.message || 'Registration failed');
@@ -84,7 +81,7 @@ const RegisterPage = () => {
             <span className="text-emerald-400">Scale your impact.</span>
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed mb-10">
-            Whether you are a restaurant with surplus food, an NGO feeding the community, or a volunteer ready to drive — you belong here.
+            Whether you are a restaurant with surplus food, or an NGO feeding the community — you belong here.
           </p>
 
           <div className="space-y-4">
@@ -136,7 +133,7 @@ const RegisterPage = () => {
                 
                 {/* Premium Segmented Control for Roles */}
                 <div className="flex p-1.5 bg-zinc-200/50 rounded-xl border border-zinc-200/50 mb-6">
-                  {['donor', 'ngo', 'volunteer'].map((r) => (
+                    {['donor', 'ngo'].map((r) => (
                     <button
                       key={r}
                       type="button"

@@ -16,10 +16,9 @@ const ListingDetail = () => {
   const { user } = useAuthStore();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [volunteers, setVolunteers] = useState([]);
-  const [selectedVolunteer, setSelectedVolunteer] = useState('');
-  const [assigning, setAssigning] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editQuantity, setEditQuantity] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -36,31 +35,25 @@ const ListingDetail = () => {
     fetchListing();
   }, [id, navigate]);
 
-  const handleAssign = async () => {
-    if (!selectedVolunteer) return;
-    setAssigning(true);
-    try {
-      await pickupsAPI.assign({ listingId: id, volunteerId: selectedVolunteer });
-      toast.success('Volunteer assigned!');
-      // Refresh listing
-      const res = await listingsAPI.getById(id);
-      setListing(res.data);
-      setShowAssignModal(false);
-    } catch (err) {
-      toast.error(err.message || 'Failed to assign');
-    } finally {
-      setAssigning(false);
-    }
-  };
+const handleUpdateQuantity = async () => {
+      if (!editQuantity || isNaN(editQuantity) || Number(editQuantity) <= 0) return toast.error('Enter a valid quantity');
+      setUpdating(true);
+      try {
+        await listingsAPI.update(id, { quantity: Number(editQuantity) });
+        toast.success('Quantity updated successfully!');
+        const res = await listingsAPI.getById(id);
+        setListing(res.data);
+        setShowEditModal(false);
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to update quantity');
+      } finally {
+        setUpdating(false);
+      }
+    };
 
-  const openAssignModal = async () => {
-    try {
-      const res = await usersAPI.getAll({ role: 'volunteer', limit: 50 });
-      setVolunteers(res.data || []);
-      setShowAssignModal(true);
-    } catch (err) {
-      toast.error('Failed to load volunteers');
-    }
+    const openEditModal = () => {
+      setEditQuantity(listing.quantity);
+      setShowEditModal(true);
   };
 
   if (loading) return <PageLoader />;
@@ -155,15 +148,7 @@ const ListingDetail = () => {
               <p className="text-sm font-medium text-surface-700">{listing.assignedVolunteer.name}</p>
               <p className="text-xs text-surface-500">{listing.assignedVolunteer.email}</p>
             </Card>
-          ) : listing.status === 'claimed' && (user.role === 'donor' || user.role === 'admin') ? (
-            <Card>
-              <h3 className="font-bold text-surface-900 mb-2">🚗 Volunteer</h3>
-              <p className="text-sm text-surface-500 mb-3">No volunteer assigned yet</p>
-              <Button onClick={openAssignModal} className="w-full" size="sm">
-                Assign Volunteer
-              </Button>
-            </Card>
-          ) : null}
+          ) : null}{/* Quick Actions */}{(user.role === 'donor' || user.role === 'ngo' || user.role === 'admin') && (listing.status === 'available' || listing.status === 'claimed') && (<Card><h3 className="font-bold text-surface-900 mb-2">⚡ Quick Actions</h3><p className="text-sm text-surface-500 mb-3">Distribute partial amounts?</p><Button onClick={openEditModal} className="w-full" size="sm" variant="secondary">Edit Available Quantity</Button></Card>)}
 
           {/* Dates */}
           <Card>
@@ -184,30 +169,7 @@ const ListingDetail = () => {
         </div>
       </div>
 
-      {/* Assign Modal */}
-      <Modal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Volunteer">
-        <div className="space-y-4">
-          <p className="text-sm text-surface-600">Select a volunteer for this pickup:</p>
-          <select
-            value={selectedVolunteer}
-            onChange={(e) => setSelectedVolunteer(e.target.value)}
-            className="w-full rounded-xl border border-surface-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-          >
-            <option value="">Select volunteer...</option>
-            {volunteers.map((v) => (
-              <option key={v._id} value={v._id}>{v.name} — {v.email}</option>
-            ))}
-          </select>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setShowAssignModal(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button onClick={handleAssign} className="flex-1" isLoading={assigning} disabled={!selectedVolunteer}>
-              Assign
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Edit Modal */}<Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Update Available Quantity"><div className="space-y-4"><p className="text-sm text-surface-600">Enter the new total available quantity for this listing:</p><input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} className="w-full rounded-xl border border-surface-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" placeholder={`Current: ${listing.quantity}`} /><div className="flex gap-3"><Button variant="secondary" onClick={() => setShowEditModal(false)} className="flex-1">Cancel</Button><Button onClick={handleUpdateQuantity} className="flex-1" isLoading={updating}>Update Quantity</Button></div></div></Modal>
     </div>
   );
 };
@@ -223,3 +185,5 @@ const TimelineItem = ({ label, date, active }) => (
 );
 
 export default ListingDetail;
+
+

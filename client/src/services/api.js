@@ -96,4 +96,20 @@ export const notificationsAPI = {
   markAllRead: () => api.patch('/notifications/read-all'),
 };
 
+// ===== Admin API =====
+export const adminAPI = {
+  getUserMetrics: () => api.get('/admin/metrics'),
+  getUsers: (params) => api.get('/admin/users', { params }),
+  updateUserStatus: (userId, data) => api.patch(`/admin/users/${userId}/status`, data),
+  verifyOrganization: (orgId, status) => api.patch(`/admin/organizations/${orgId}/verify`, { status }),
+  getUserLogs: (userId) => api.get(`/admin/users/${userId}/logs`),
+  getAllListings: (params) => api.get('/admin/listings', { params }),
+  moderateListing: (listingId, data) => api.patch(`/admin/listings/${listingId}/moderate`, data),
+  deleteListing: (listingId) => api.delete(`/admin/listings/${listingId}`),
+  getAllClaims: (params) => api.get('/admin/claims', { params }),
+  forceAssignClaim: (claimId, newNgoId) => api.patch(`/admin/claims/${claimId}/force-assign`, { newNgoId }),
+  getComplaints: (params) => api.get('/admin/complaints', { params }),
+  resolveComplaint: (complaintId, data) => api.patch(`/admin/complaints/${complaintId}/resolve`, data),
+};
+
 export default api;

@@ -80,8 +80,16 @@ const foodListingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['available', 'claimed', 'picked_up', 'delivered', 'expired', 'cancelled'],
+      enum: ['available', 'claimed', 'picked_up', 'delivered', 'expired', 'cancelled', 'flagged'],
       default: 'available',
+    },
+    isFlagged: {
+      type: Boolean,
+      default: false,
+    },
+    flagReason: {
+      type: String,
+      default: '',
     },
     claimedBy: {
       type: mongoose.Schema.Types.ObjectId,

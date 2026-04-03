@@ -1,160 +1,88 @@
 import { useState, useEffect } from 'react';
-import { HiUsers, HiClipboardList, HiTruck, HiHeart, HiChartBar, HiShieldCheck } from 'react-icons/hi';
-import { analyticsAPI } from '../../services/api';
+import { HiUsers, HiClipboardList, HiOutlineShieldCheck, HiScale, HiExclamationCircle, HiFire, HiHeart } from 'react-icons/hi';
+import { adminAPI } from '../../services/api';
 import StatCard from '../../components/ui/StatCard';
 import Card from '../../components/ui/Card';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-
-const COLORS = ['#10b981', '#14b8a6', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+import Badge from '../../components/ui/Badge';
+import io from 'socket.io-client';
 
 const AdminDashboard = () => {
-  const [data, setData] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+  const [anomalies, setAnomalies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    let socket;
+    const fetchMetrics = async () => {
       try {
-        const res = await analyticsAPI.getOverview();
-        setData(res.data);
+        const res = await adminAPI.getUserMetrics();
+        setMetrics(res.data.metrics);
+        setAnomalies(res.data.anomalies);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load metrics", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchAnalytics();
+    fetchMetrics();
+    
+    // Real-Time Socket Connection
+    const token = localStorage.getItem('resqfood_token');
+    socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:5000', {
+        auth: { token }
+    });
+
+    socket.on('admin_metrics_update', (newMetrics) => {
+        setMetrics(prev => ({...prev, ...newMetrics}));
+    });
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
   }, []);
 
   if (loading) return <PageLoader />;
-  if (!data) return null;
-
-  const { overview, categoryDistribution, usersByRole, recentListings, topDonors } = data;
 
   return (
-    <div className="space-y-10 animate-fade-in">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-surface-900">Admin Dashboard</h1>
-        <p className="text-surface-500 mt-2 text-base">Platform-wide metrics and monitoring</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Live Admin Monitoring</h1>
+          <p className="text-gray-500 mt-1">Real-time metrics, anomalies, and overall platform health.</p>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 stagger-children">
-        <StatCard icon={<HiUsers />} label="Total Users" value={overview.totalUsers} />
-        <StatCard icon={<HiClipboardList />} label="Total Listings" value={overview.totalListings} />
-        <StatCard icon={<HiHeart />} label="Meals Saved" value={overview.mealsSaved} trendUp trend="All time" />
-        <StatCard icon={<HiTruck />} label="Deliveries" value={overview.completedPickups} />
-        <StatCard icon={<HiShieldCheck />} label="Available Now" value={overview.availableListings} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard title="Total Users" value={metrics?.usersCount || 0} icon={HiUsers} color="bg-blue-500" />
+        <StatCard title="Total Listings" value={metrics?.totalListings || 0} icon={HiClipboardList} color="bg-indigo-500" />
+        <StatCard title="Active Listings" value={metrics?.activeListings || 0} icon={HiFire} color="bg-amber-500" />
+        <StatCard title="Meals Rescued" value={metrics?.totalMealsSaved || 0} icon={HiHeart} color="bg-emerald-500" />
+        <StatCard title="Pending Complaints" value={metrics?.pendingComplaints || 0} icon={HiExclamationCircle} color="bg-rose-500" />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-7">
-        {/* Recent Activity Bar Chart */}
-        <Card padding="p-5 md:p-6">
-          <h2 className="font-bold text-surface-900 mb-5">📈 Listings (Last 7 Days)</h2>
-          {recentListings.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={recentListings}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="_id" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  }}
-                />
-                <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} name="Listings" />
-                <Bar dataKey="quantity" fill="#14b8a6" radius={[6, 6, 0, 0]} name="Quantity" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-surface-400 text-sm">No data yet</div>
-          )}
-        </Card>
-
-        {/* Category Distribution Pie Chart */}
-        <Card padding="p-5 md:p-6">
-          <h2 className="font-bold text-surface-900 mb-5">🍽️ Category Distribution</h2>
-          {categoryDistribution.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={categoryDistribution}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="count"
-                  nameKey="_id"
-                  label={({ _id, count }) => `${_id}: ${count}`}
-                  labelLine={false}
-                >
-                  {categoryDistribution.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-surface-400 text-sm">No data yet</div>
-          )}
-        </Card>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-7">
-        {/* Users by Role */}
-        <Card padding="p-5 md:p-6">
-          <h2 className="font-bold text-surface-900 mb-5">👥 Users by Role</h2>
-          <div className="space-y-4">
-            {usersByRole.map((r) => (
-              <div key={r._id} className="flex items-center gap-3">
-                <div className="w-20 text-sm font-medium text-surface-600 capitalize">{r._id}</div>
-                <div className="flex-1 bg-surface-100 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-linear-to-r from-primary-500 to-accent-500 transition-all duration-700"
-                    style={{ width: `${Math.min(100, (r.count / overview.totalUsers) * 100)}%` }}
-                  />
-                </div>
-                <span className="text-sm font-bold text-surface-700 w-8 text-right">{r.count}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Top Donors */}
-        <Card padding="p-5 md:p-6">
-          <h2 className="font-bold text-surface-900 mb-5">🏆 Top Donors</h2>
-          {topDonors.length > 0 ? (
-            <div className="space-y-3">
-              {topDonors.map((d, i) => (
-                <div key={d._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 transition-colors">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    i === 0 ? 'bg-yellow-100 text-yellow-700' :
-                    i === 1 ? 'bg-gray-100 text-gray-700' :
-                    i === 2 ? 'bg-amber-100 text-amber-700' :
-                    'bg-surface-100 text-surface-600'
-                  }`}>
-                    {i + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-surface-800 text-sm">{d.name}</p>
-                    <p className="text-xs text-surface-500">{d.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-surface-800">{d.deliveries}</p>
-                    <p className="text-xs text-surface-400">deliveries</p>
-                  </div>
-                </div>
-              ))}
+      <Card title="System Anomalies Detected">
+        {anomalies && anomalies.length > 0 ? (
+            <div className="divide-y divide-gray-100">
+                {anomalies.map((anomaly, idx) => (
+                    <div key={idx} className="py-4 flex justify-between items-center bg-rose-50 px-4 rounded-lg my-2 border border-rose-100">
+                        <div>
+                            <h4 className="font-semibold text-rose-800">{anomaly.title}</h4>
+                            <p className="text-sm text-rose-600 font-medium">Quantity: {anomaly.quantity} {anomaly.unit}</p>
+                            <p className="text-xs text-rose-500">Status: {anomaly.status} • Category: {anomaly.category}</p>
+                        </div>
+                        <Badge variant="error">Review</Badge>
+                    </div>
+                ))}
             </div>
-          ) : (
-            <div className="py-8 text-center text-surface-400 text-sm">No delivery data yet</div>
-          )}
-        </Card>
-      </div>
+        ) : (
+            <div className="text-center py-10">
+                <HiOutlineShieldCheck className="mx-auto h-12 w-12 text-emerald-400" />
+                <p className="mt-4 text-gray-500 font-medium">No active anomalies detected!</p>
+            </div>
+        )}
+      </Card>
+      
     </div>
   );
 };
