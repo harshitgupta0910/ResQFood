@@ -51,7 +51,7 @@ const LoginPage = () => {
 
           <div className="flex items-center gap-8 border-t border-zinc-800/50 pt-8">
             <div>
-              <p className="text-3xl font-semibold text-white tracking-tight">10k+</p>
+              <p className="text-3xl font-semibold text-white tracking-tight">100+</p>
               <p className="text-xs text-zinc-500 font-bold mt-1 uppercase tracking-wider">Meals Saved</p>
             </div>
             <div className="w-px h-12 bg-zinc-800/50" />
@@ -61,7 +61,7 @@ const LoginPage = () => {
             </div>
             <div className="w-px h-12 bg-zinc-800/50" />
             <div>
-              <p className="text-3xl font-semibold text-white tracking-tight">200+</p>
+              <p className="text-3xl font-semibold text-white tracking-tight">20+</p>
               <p className="text-xs text-zinc-500 font-bold mt-1 uppercase tracking-wider">Active NGOs</p>
             </div>
           </div>
