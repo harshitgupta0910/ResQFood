@@ -72,6 +72,7 @@ const claimListing = async (req, res, next) => {
       { listingId: listing._id, ngoId },
       {
         claimedQuantity: requestedQty,
+        donorId: listing.donorId?._id || listing.donorId,
         status: 'pending',
         priorityScore,
         notes: req.body.notes || '',

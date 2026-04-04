@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { listingsAPI, claimsAPI } from '../../services/api';
+import { ratingsAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import RatingModal from '../../components/ui/RatingModal';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
 import { formatDateTime, getStatusColor, getStatusLabel, getCategoryLabel, getCategoryIcon, getConditionLabel, getTimeUntilExpiry } from '../../utils/helpers';
 import toast from 'react-hot-toast';
@@ -22,19 +24,22 @@ const ListingDetail = () => {
   const [editQuantity, setEditQuantity] = useState('');
   const [updating, setUpdating] = useState(false);
   const [listingClaims, setListingClaims] = useState([]);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [ratingSaving, setRatingSaving] = useState(false);
+
+  const fetchListing = async () => {
+    try {
+      const res = await listingsAPI.getById(id);
+      setListing(res.data);
+    } catch (err) {
+      toast.error('Failed to load listing');
+      navigate(-1);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchListing = async () => {
-      try {
-        const res = await listingsAPI.getById(id);
-        setListing(res.data);
-      } catch (err) {
-        toast.error('Failed to load listing');
-        navigate(-1);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchListing();
   }, [id, navigate]);
 
@@ -78,6 +83,7 @@ const handleUpdateQuantity = async () => {
 
   const expiry = getTimeUntilExpiry(listing.expiryAt);
   const showNgoListingBot = user?.role === 'ngo' && location.pathname.startsWith('/ngo/live/');
+  const ngoMyRating = showNgoListingBot ? (listing.claimRatings || []).find((r) => r.raterRole === 'ngo') : null;
   const donorOrgName = listing.donorId?.organizationId?.name || 'No organization';
   const donorPhone =
     listing.donorId?.phone ||
@@ -186,6 +192,18 @@ const handleUpdateQuantity = async () => {
             <h3 className="font-bold text-surface-900 mb-2">🏢 Donor Organization</h3>
             <p className="text-sm font-medium text-surface-700">{donorOrgName}</p>
             <p className="text-xs text-surface-500 mt-1">Contact: {donorPhone}</p>
+            <p className="text-xs text-surface-500 mt-2">
+              Donor Rating: {listing.donorRatingSummary?.totalCount > 0
+                ? `${listing.donorRatingSummary.averageScore}/5 (${listing.donorRatingSummary.totalCount})`
+                : 'No ratings yet'}
+            </p>
+            {showNgoListingBot && listing.eligibleForNgoRating && (
+              <div className="mt-3">
+                <Button size="sm" variant="secondary" className="w-full" onClick={() => setRatingModalOpen(true)}>
+                  {ngoMyRating ? 'Edit Your Donor Rating' : 'Rate Donor'}
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* Address */}
@@ -241,6 +259,28 @@ const handleUpdateQuantity = async () => {
       </div>
 
       {/* Edit Modal */}<Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Update Available Quantity"><div className="space-y-4"><p className="text-sm text-surface-600">Enter the new total available quantity for this listing:</p><input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} className="w-full rounded-xl border border-surface-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" placeholder={`Current: ${listing.quantity}`} /><div className="flex gap-3"><Button variant="secondary" onClick={() => setShowEditModal(false)} className="flex-1">Cancel</Button><Button onClick={handleUpdateQuantity} className="flex-1" isLoading={updating}>Update Quantity</Button></div></div></Modal>
+      <RatingModal
+        isOpen={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+        title="Rate Donor"
+        initialScore={ngoMyRating?.score || 0}
+        initialReview={ngoMyRating?.review || ''}
+        isLoading={ratingSaving}
+        onSubmit={async ({ score, review }) => {
+          if (!listing.ngoDeliveredClaimId) return;
+          try {
+            setRatingSaving(true);
+            await ratingsAPI.upsert({ claimId: listing.ngoDeliveredClaimId, score, review });
+            toast.success('Rating submitted');
+            setRatingModalOpen(false);
+            await fetchListing();
+          } catch (err) {
+            toast.error(err.message || 'Failed to submit rating');
+          } finally {
+            setRatingSaving(false);
+          }
+        }}
+      />
       {showNgoListingBot && <ListingAIAssistant listingId={id} />}
     </div>
   );

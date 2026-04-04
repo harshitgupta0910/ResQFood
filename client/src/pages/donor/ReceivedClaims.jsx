@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { claimsAPI } from '../../services/api';
+import { ratingsAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
+import RatingModal from '../../components/ui/RatingModal';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
 import { formatDateTime, getStatusColor, getStatusLabel } from '../../utils/helpers';
 import toast from 'react-hot-toast';
@@ -14,6 +16,11 @@ const getOtpMetaLabel = (claim) => {
   return 'Resend OTP';
 };
 
+const formatRating = (summary) => {
+  if (!summary || !summary.totalCount) return 'No ratings yet';
+  return `${summary.averageScore}/5 (${summary.totalCount})`;
+};
+
 const ReceivedClaims = () => {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +28,41 @@ const ReceivedClaims = () => {
   const [verifyingOtpFor, setVerifyingOtpFor] = useState('');
   const [otpModalClaim, setOtpModalClaim] = useState(null);
   const [otpValue, setOtpValue] = useState('');
+  const [ratingModal, setRatingModal] = useState({ open: false, claim: null, existing: null });
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [ngoRatings, setNgoRatings] = useState({});
+
+  const loadNgoRatings = async (claimList) => {
+    try {
+      const ngoIds = Array.from(new Set((claimList || []).map((c) => c?.ngoId?._id).filter(Boolean)));
+      if (ngoIds.length === 0) {
+        setNgoRatings({});
+        return;
+      }
+
+      const results = await Promise.allSettled(ngoIds.map((id) => ratingsAPI.getUserSummary(id)));
+      const map = {};
+
+      results.forEach((result, index) => {
+        const ngoId = ngoIds[index];
+        if (result.status === 'fulfilled') {
+          map[ngoId] = result.value?.data || { averageScore: 0, totalCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+        }
+      });
+
+      setNgoRatings(map);
+    } catch {
+      setNgoRatings({});
+    }
+  };
 
   const fetchClaims = async () => {
     try {
       setLoading(true);
       const res = await claimsAPI.getReceived({ limit: 100 });
-      setClaims(res.data || []);
+      const claimList = res.data || [];
+      setClaims(claimList);
+      await loadNgoRatings(claimList);
     } catch (err) {
       toast.error(err.message || 'Failed to load received claims');
     } finally {
@@ -100,6 +136,7 @@ const ReceivedClaims = () => {
                   <td className="px-4 py-3">
                     <p className="font-medium text-surface-800">{claim.ngoId?.name || 'Unknown NGO'}</p>
                     <p className="text-xs text-surface-500">Org: {claim.ngoId?.organizationId?.name || 'No organization'}</p>
+                    <p className="text-xs text-surface-500">Rating: {formatRating(ngoRatings[claim.ngoId?._id])}</p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-surface-700">{claim.ngoId?.email || 'No email'}</p>
@@ -138,9 +175,26 @@ const ReceivedClaims = () => {
                         </>
                       )}
                       {claim.status === 'delivered' && (
-                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
-                          Completed
-                        </span>
+                        <>
+                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                            Completed
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={async () => {
+                              try {
+                                const res = await ratingsAPI.getByClaim(claim._id);
+                                const mine = (res.data || []).find((r) => r.raterRole === 'donor');
+                                setRatingModal({ open: true, claim, existing: mine || null });
+                              } catch (err) {
+                                toast.error(err.message || 'Unable to load rating details');
+                              }
+                            }}
+                          >
+                            Rate NGO
+                          </Button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -204,6 +258,28 @@ const ReceivedClaims = () => {
           </div>
         </div>
       </Modal>
+
+      <RatingModal
+        isOpen={ratingModal.open}
+        onClose={() => setRatingModal({ open: false, claim: null, existing: null })}
+        title="Rate NGO"
+        initialScore={ratingModal.existing?.score || 0}
+        initialReview={ratingModal.existing?.review || ''}
+        isLoading={ratingLoading}
+        onSubmit={async ({ score, review }) => {
+          if (!ratingModal.claim?._id) return;
+          try {
+            setRatingLoading(true);
+            await ratingsAPI.upsert({ claimId: ratingModal.claim._id, score, review });
+            toast.success('NGO rating submitted');
+            setRatingModal({ open: false, claim: null, existing: null });
+          } catch (err) {
+            toast.error(err.message || 'Failed to submit rating');
+          } finally {
+            setRatingLoading(false);
+          }
+        }}
+      />
     </div>
   );
 };

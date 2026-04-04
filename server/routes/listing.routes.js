@@ -17,6 +17,7 @@ const router = express.Router();
 
 router.use(protect);
 
+router.post('/intake/assist', authorize('donor', 'admin'), assistDonorIntake);
 router.post('/', authorize('donor', 'admin'), upload.array('photos', 5), createListing);
 router.get('/', getListings);
 router.get('/:id', getListingById);
@@ -26,6 +27,5 @@ router.delete('/:id', authorize('donor', 'admin'), deleteListing);
 // Claim route
 router.post('/:id/claim', authorize('ngo'), claimListing);
 router.post('/:id/chatbot', authorize('ngo'), askListingChatbot);
-router.post('/intake/assist', authorize('donor', 'admin'), assistDonorIntake);
 
 module.exports = router;

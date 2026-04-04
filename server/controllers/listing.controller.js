@@ -1,8 +1,11 @@
 const FoodListing = require('../models/FoodListing');
+const Claim = require('../models/Claim');
+const Rating = require('../models/Rating');
 const { uploadToCloudinary } = require('../config/cloudinary');
 const { generateListingChatResponse } = require('../services/gemini.service');
 const { generateAudioBuffer } = require('../services/elevenlabs.service');
 const { extractDonationData } = require('../services/intake.service');
+const { getUserSummaryAggregate } = require('./rating.controller');
 
 const intakeSessions = new Map();
 
@@ -146,7 +149,45 @@ const getListingById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Listing not found' });
     }
 
-    res.json({ success: true, data: listing });
+    const donorId = listing.donorId?._id || listing.donorId;
+    const donorRatingSummary = donorId
+      ? await getUserSummaryAggregate(donorId)
+      : { averageScore: 0, totalCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+
+    const ngoTargetId = listing.claimedBy?._id || listing.claimedBy || null;
+    const ngoRatingSummary = ngoTargetId
+      ? await getUserSummaryAggregate(ngoTargetId)
+      : { averageScore: 0, totalCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+
+    let claimRatings = [];
+    let ngoDeliveredClaimId = null;
+    if (req.user?.role === 'ngo') {
+      const deliveredClaim = await Claim.findOne({
+        listingId: listing._id,
+        ngoId: req.user._id,
+        status: 'delivered',
+      }).select('_id');
+
+      if (deliveredClaim) {
+        ngoDeliveredClaimId = deliveredClaim._id;
+        claimRatings = await Rating.find({ claimId: deliveredClaim._id })
+          .populate('raterId', 'name avatar role')
+          .populate('rateeId', 'name avatar role')
+          .sort({ createdAt: 1 });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...listing.toObject(),
+        donorRatingSummary,
+        ngoRatingSummary,
+        claimRatings,
+        ngoDeliveredClaimId,
+        eligibleForNgoRating: Boolean(ngoDeliveredClaimId),
+      },
+    });
   } catch (error) {
     next(error);
   }

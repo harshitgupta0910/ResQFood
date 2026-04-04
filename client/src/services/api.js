@@ -125,4 +125,12 @@ export const adminAPI = {
   resolveComplaint: (complaintId, data) => api.patch(`/admin/complaints/${complaintId}/resolve`, data),
 };
 
+// ===== Ratings API =====
+export const ratingsAPI = {
+  upsert: (data) => api.post('/ratings', data),
+  update: (id, data) => api.patch(`/ratings/${id}`, data),
+  getByClaim: (claimId) => api.get(`/ratings/claim/${claimId}`),
+  getUserSummary: (userId) => api.get(`/ratings/user/${userId}/summary`),
+};
+
 export default api;

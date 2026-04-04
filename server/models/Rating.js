@@ -2,19 +2,34 @@ const mongoose = require('mongoose');
 
 const ratingSchema = new mongoose.Schema(
   {
-    fromUserId: {
+    claimId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    toUserId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Claim',
       required: true,
     },
     listingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'FoodListing',
+      required: true,
+    },
+    raterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    rateeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    raterRole: {
+      type: String,
+      enum: ['donor', 'ngo'],
+      required: true,
+    },
+    rateeRole: {
+      type: String,
+      enum: ['donor', 'ngo'],
       required: true,
     },
     score: {
@@ -23,7 +38,7 @@ const ratingSchema = new mongoose.Schema(
       min: 1,
       max: 5,
     },
-    comment: {
+    review: {
       type: String,
       default: '',
       maxlength: 500,
@@ -34,7 +49,7 @@ const ratingSchema = new mongoose.Schema(
   }
 );
 
-ratingSchema.index({ toUserId: 1 });
-ratingSchema.index({ fromUserId: 1, listingId: 1 }, { unique: true });
+ratingSchema.index({ rateeId: 1 });
+ratingSchema.index({ claimId: 1, raterId: 1, rateeId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Rating', ratingSchema);
