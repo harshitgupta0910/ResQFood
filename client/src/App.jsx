@@ -5,6 +5,7 @@ import useAuthStore from './store/authStore';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import { PageLoader } from './components/ui/LoadingSpinner';
+import LandingPage from './pages/LandingPage';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -68,10 +69,9 @@ const App = () => {
       <Router>
         <Routes>
           {/* Public Routes */}
+          <Route path="/" element={isAuthenticated ? <Navigate to={getRoleHomeRoute(user?.role)} replace /> : <LandingPage />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to={getRoleHomeRoute(user?.role)} replace /> : <LoginPage />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to={getRoleHomeRoute(user?.role)} replace /> : <RegisterPage />} />
-
-          <Route path="/" element={<Navigate to={isAuthenticated ? getRoleHomeRoute(user?.role) : '/login'} replace />} />
 
           {/* Protected Routes inside Layout */}
           <Route element={<MainLayout />}>
