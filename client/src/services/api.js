@@ -89,6 +89,7 @@ export const usersAPI = {
 // ===== Analytics API =====
 export const analyticsAPI = {
   getOverview: () => api.get('/analytics/overview'),
+  getPublicOverview: () => api.get('/analytics/public-overview'),
 };
 
 // ===== Utils API =====

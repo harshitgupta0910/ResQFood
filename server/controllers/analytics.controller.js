@@ -3,6 +3,39 @@ const Claim = require('../models/Claim');
 const Pickup = require('../models/Pickup');
 const User = require('../models/User');
 
+// @desc    Get public analytics summary for landing page
+// @route   GET /api/analytics/public-overview
+const getPublicOverview = async (req, res, next) => {
+  try {
+    const [deliveredListings, donorCount, ngoCount, totalClaims] = await Promise.all([
+      FoodListing.countDocuments({ status: 'delivered' }),
+      User.countDocuments({ role: 'donor', isBanned: false }),
+      User.countDocuments({ role: 'ngo', isBanned: false }),
+      Claim.countDocuments(),
+    ]);
+
+    const mealsSavedAgg = await FoodListing.aggregate([
+      { $match: { status: 'delivered' } },
+      { $group: { _id: null, total: { $sum: '$quantity' } } },
+    ]);
+
+    const mealsRedistributed = mealsSavedAgg[0]?.total || 0;
+    const claimRate = totalClaims > 0 ? Math.round((deliveredListings / totalClaims) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        mealsRedistributed,
+        activeDonors: donorCount,
+        partnerNgos: ngoCount,
+        claimRate,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get analytics overview
 // @route   GET /api/analytics/overview
 const getOverview = async (req, res, next) => {
@@ -117,4 +150,4 @@ const getOverview = async (req, res, next) => {
   }
 };
 
-module.exports = { getOverview };
+module.exports = { getOverview, getPublicOverview };

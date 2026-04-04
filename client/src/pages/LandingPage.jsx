@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { HiArrowRight, HiCheckCircle, HiSparkles, HiLightningBolt, HiGlobeAlt } from 'react-icons/hi';
+import { analyticsAPI } from '../services/api';
 
-const impactStats = [
-  { label: 'Meals Redistributed', value: '125K+' },
-  { label: 'Active Donors', value: '1.2K+' },
-  { label: 'Partner NGOs', value: '480+' },
-  { label: 'Food Waste Reduced', value: '42%' },
-];
+const compactNumber = (value) => {
+  const num = Number(value) || 0;
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1).replace(/\.0$/, '')}M+`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1).replace(/\.0$/, '')}K+`;
+  return `${num}`;
+};
 
 const flowSteps = [
   {
@@ -37,6 +39,21 @@ const roleHighlights = [
 ];
 
 const LandingPage = () => {
+  const { data } = useQuery({
+    queryKey: ['public-analytics-overview'],
+    queryFn: analyticsAPI.getPublicOverview,
+    staleTime: 1000 * 60,
+  });
+
+  const publicStats = data?.data || {};
+
+  const impactStats = [
+    { label: 'Meals Redistributed', value: compactNumber(publicStats.mealsRedistributed) },
+    { label: 'Active Donors', value: compactNumber(publicStats.activeDonors) },
+    { label: 'Partner NGOs', value: compactNumber(publicStats.partnerNgos) },
+    { label: 'Claim Success Rate', value: `${Number(publicStats.claimRate || 0)}%` },
+  ];
+
   return (
     <div className="min-h-screen bg-surface-50 text-surface-900 overflow-x-hidden">
       <div className="relative isolate">
@@ -115,7 +132,9 @@ const LandingPage = () => {
 
               <div className="mt-5 rounded-2xl border border-surface-200 bg-gradient-to-r from-secondary to-secondary/85 p-4 text-white">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary">Live Efficiency Index</p>
-                <p className="mt-1 heading-font text-2xl font-bold">+27% Faster Claim Turnaround</p>
+                <p className="mt-1 heading-font text-2xl font-bold">
+                  {`${Number(publicStats.claimRate || 0)}% Claim-to-Delivery Efficiency`}
+                </p>
               </div>
             </div>
           </section>
