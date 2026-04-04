@@ -60,6 +60,11 @@ const handleUpdateQuantity = async () => {
   if (!listing) return null;
 
   const expiry = getTimeUntilExpiry(listing.expiryAt);
+  const donorOrgName = listing.donorId?.organizationId?.name || 'No organization';
+  const donorPhone =
+    listing.donorId?.phone ||
+    listing.donorId?.organizationId?.contactPhone ||
+    'Phone not available';
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in space-y-6">
@@ -126,6 +131,13 @@ const handleUpdateQuantity = async () => {
 
         {/* Sidebar */}
         <div className="space-y-4">
+          {/* Organization */}
+          <Card>
+            <h3 className="font-bold text-surface-900 mb-2">🏢 Donor Organization</h3>
+            <p className="text-sm font-medium text-surface-700">{donorOrgName}</p>
+            <p className="text-xs text-surface-500 mt-1">Contact: {donorPhone}</p>
+          </Card>
+
           {/* Address */}
           <Card>
             <h3 className="font-bold text-surface-900 mb-2">📍 Pickup Location</h3>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { listingsAPI } from '../../services/api';
 import { onEvent, offEvent } from '../../services/socket';
+import useAuthStore from '../../store/authStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -10,10 +12,70 @@ import { getCategoryIcon, getCategoryLabel, getTimeUntilExpiry, getConditionLabe
 import toast from 'react-hot-toast';
 
 const LiveFeed = () => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
   const [filter, setFilter] = useState('all');
+
+  const getLiveBrowserLocation = () =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    });
+
+  const getMapsDirectionUrl = async (listing) => {
+    const listingCoords = listing?.geo?.coordinates;
+    const userCoords = user?.location?.coordinates;
+
+    const liveLocation = await getLiveBrowserLocation();
+
+    const parsedUserLng = Number(userCoords?.[0]);
+    const parsedUserLat = Number(userCoords?.[1]);
+    const hasProfileCoords =
+      Number.isFinite(parsedUserLng) &&
+      Number.isFinite(parsedUserLat) &&
+      !(parsedUserLng === 0 && parsedUserLat === 0);
+
+    const parsedListingLng = Number(listingCoords?.[0]);
+    const parsedListingLat = Number(listingCoords?.[1]);
+    const hasListingCoords =
+      Number.isFinite(parsedListingLng) && Number.isFinite(parsedListingLat);
+
+    const origin = liveLocation
+      ? `${liveLocation.lat},${liveLocation.lng}`
+      : hasProfileCoords
+      ? `${parsedUserLat},${parsedUserLng}`
+      : user?.location?.address || '';
+
+    const destination = hasListingCoords
+      ? `${parsedListingLat},${parsedListingLng}`
+      : listing?.address || '';
+
+    if (!origin || !destination) return null;
+
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+  };
+
+  const handleDirections = async (listing) => {
+    const url = await getMapsDirectionUrl(listing);
+    if (!url) {
+      toast.error('Location missing. Enable location permission or update profile/listing address.');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const fetchListings = async () => {
     try {
@@ -128,6 +190,25 @@ const LiveFeed = () => {
                 {listing.address && (
                   <p className="text-xs text-surface-400 mb-4 truncate">📍 {listing.address}</p>
                 )}
+
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => navigate(`/ngo/live/${listing._id}`)}
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleDirections(listing)}
+                  >
+                    Directions
+                  </Button>
+                </div>
 
                 <Button
                   className="w-full"

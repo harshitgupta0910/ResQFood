@@ -125,9 +125,16 @@ const getListings = async (req, res, next) => {
 const getListingById = async (req, res, next) => {
   try {
     const listing = await FoodListing.findById(req.params.id)
-      .populate('donorId', 'name email avatar phone location')
-      .populate('claimedBy', 'name email avatar phone')
-      .populate('assignedVolunteer', 'name email avatar phone');
+      .populate({
+        path: 'donorId',
+        select: 'name email avatar phone location organizationId role',
+        populate: {
+          path: 'organizationId',
+          model: 'Organization',
+          select: 'name type verifiedStatus contactPhone'
+        }
+      })
+      .populate('claimedBy', 'name email avatar phone');
 
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found' });
