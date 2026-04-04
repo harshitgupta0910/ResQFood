@@ -52,7 +52,7 @@ const MyClaims = () => {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-surface-800">{listing.title}</h3>
                   <p className="text-sm text-surface-500">
-                    {listing.quantity} {listing.unit} · by {listing.donorId?.name || 'Donor'}
+                    {claim.claimedQuantity} {listing.unit} claimed · by {listing.donorId?.name || 'Donor'}
                   </p>
                   <p className="text-xs text-surface-400 mt-1">
                     Claimed: {formatDateTime(claim.createdAt)} · Score: {claim.priorityScore}

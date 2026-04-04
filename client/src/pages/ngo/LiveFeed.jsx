@@ -293,7 +293,7 @@ const LiveFeed = () => {
 
             <Input
               type="number"
-              min="1"
+              min="0"
               max={selectedListing.quantity}
               label={`Quantity (${selectedListing.unit})`}
               value={claimQuantity}

@@ -80,6 +80,7 @@ const getListings = async (req, res, next) => {
     const query = {};
 
     if (status) query.status = status;
+    if (status === 'available') query.quantity = { $gt: 0 };
     if (category) query.category = category;
     if (condition) query.condition = condition;
     if (donorId) query.donorId = donorId;
