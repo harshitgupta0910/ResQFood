@@ -12,6 +12,11 @@ const claimSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    claimedQuantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected', 'cancelled'],

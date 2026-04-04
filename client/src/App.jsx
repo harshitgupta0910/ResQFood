@@ -15,6 +15,7 @@ import DonorDashboard from './pages/donor/DonorDashboard';
 import CreateListing from './pages/donor/CreateListing';
 import MyListings from './pages/donor/MyListings';
 import ListingDetail from './pages/donor/ListingDetail';
+import ReceivedClaims from './pages/donor/ReceivedClaims';
 
 // NGO Pages
 import NgoDashboard from './pages/ngo/NgoDashboard';
@@ -79,6 +80,7 @@ const App = () => {
             <Route path="/donor" element={<ProtectedRoute roles={['donor', 'admin']}><DonorDashboard /></ProtectedRoute>} />
             <Route path="/donor/create" element={<ProtectedRoute roles={['donor', 'admin']}><CreateListing /></ProtectedRoute>} />
             <Route path="/donor/listings" element={<ProtectedRoute roles={['donor', 'admin']}><MyListings /></ProtectedRoute>} />
+            <Route path="/donor/claims" element={<ProtectedRoute roles={['donor', 'admin']}><ReceivedClaims /></ProtectedRoute>} />
             <Route path="/donor/listings/:id" element={<ProtectedRoute roles={['donor', 'admin']}><ListingDetail /></ProtectedRoute>} />
 
             {/* NGO Routes */}

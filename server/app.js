@@ -11,6 +11,7 @@ const claimRoutes = require('./routes/claim.routes');
 const pickupRoutes = require('./routes/pickup.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const adminRoutes = require('./routes/admin.routes');
+const utilsRoutes = require('./routes/utils.routes');
 
 // Middleware imports
 const { errorHandler } = require('./middleware/error.middleware');
@@ -48,6 +49,7 @@ app.use('/api/claims', claimRoutes);
 app.use('/api/pickups', pickupRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/utils', utilsRoutes);
 
 // Notification routes (inline for simplicity)
 const { protect } = require('./middleware/auth.middleware');

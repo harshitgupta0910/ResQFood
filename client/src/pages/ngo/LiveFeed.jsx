@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listingsAPI } from '../../services/api';
+import { listingsAPI, utilsAPI } from '../../services/api';
 import { onEvent, offEvent } from '../../services/socket';
 import useAuthStore from '../../store/authStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
+import Input from '../../components/ui/Input';
+import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
 import { getCategoryIcon, getCategoryLabel, getTimeUntilExpiry, getConditionLabel } from '../../utils/helpers';
@@ -18,6 +20,9 @@ const LiveFeed = () => {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [claimQuantity, setClaimQuantity] = useState('');
 
   const getLiveBrowserLocation = () =>
     new Promise((resolve) => {
@@ -51,7 +56,9 @@ const LiveFeed = () => {
     const parsedListingLng = Number(listingCoords?.[0]);
     const parsedListingLat = Number(listingCoords?.[1]);
     const hasListingCoords =
-      Number.isFinite(parsedListingLng) && Number.isFinite(parsedListingLat);
+      Number.isFinite(parsedListingLng) &&
+      Number.isFinite(parsedListingLat) &&
+      !(parsedListingLng === 0 && parsedListingLat === 0);
 
     const origin = liveLocation
       ? `${liveLocation.lat},${liveLocation.lng}`
@@ -59,9 +66,18 @@ const LiveFeed = () => {
       ? `${parsedUserLat},${parsedUserLng}`
       : user?.location?.address || '';
 
-    const destination = hasListingCoords
+    let destination = hasListingCoords
       ? `${parsedListingLat},${parsedListingLng}`
       : listing?.address || '';
+
+    if (!hasListingCoords && listing?.address) {
+      try {
+        const normalized = await utilsAPI.normalizeAddress(listing.address);
+        destination = normalized?.data?.normalizedAddress || destination;
+      } catch {
+        // Fallback to original typed address when normalization fails.
+      }
+    }
 
     if (!origin || !destination) return null;
 
@@ -100,9 +116,12 @@ const LiveFeed = () => {
       toast('🍲 New listing!', { icon: '📢' });
     };
     const handleUpdated = (listing) => {
-      if (listing.status !== 'available') {
-        setListings((prev) => prev.filter((l) => l._id !== listing._id));
-      }
+      setListings((prev) => {
+        if (listing.status !== 'available') {
+          return prev.filter((l) => l._id !== listing._id);
+        }
+        return prev.map((l) => (l._id === listing._id ? listing : l));
+      });
     };
 
     onEvent('listing:new', handleNew);
@@ -113,12 +132,42 @@ const LiveFeed = () => {
     };
   }, []);
 
-  const handleClaim = async (id) => {
+  const openClaimModal = (listing) => {
+    setSelectedListing(listing);
+    setClaimQuantity(String(listing.quantity));
+    setClaimModalOpen(true);
+  };
+
+  const submitClaim = async () => {
+    if (!selectedListing) return;
+
+    const quantity = Number(claimQuantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
+
+    if (quantity > selectedListing.quantity) {
+      toast.error(`Only ${selectedListing.quantity} ${selectedListing.unit} is currently available`);
+      return;
+    }
+
+    const id = selectedListing._id;
     setClaiming(id);
     try {
-      await listingsAPI.claim(id, {});
-      toast.success('Claimed successfully!');
-      setListings((prev) => prev.filter((l) => l._id !== id));
+      const res = await listingsAPI.claim(id, { quantity });
+      const updatedListing = res?.data?.listing;
+
+      toast.success(`Claimed ${quantity} ${selectedListing.unit} successfully!`);
+
+      if (updatedListing?.status === 'available') {
+        setListings((prev) => prev.map((l) => (l._id === id ? updatedListing : l))); 
+      } else {
+        setListings((prev) => prev.filter((l) => l._id !== id));
+      }
+      setClaimModalOpen(false);
+      setSelectedListing(null);
+      setClaimQuantity('');
     } catch (err) {
       toast.error(err.message || 'Already claimed');
     } finally {
@@ -214,7 +263,7 @@ const LiveFeed = () => {
                   className="w-full"
                   size="sm"
                   isLoading={claiming === listing._id}
-                  onClick={() => handleClaim(listing._id)}
+                  onClick={() => openClaimModal(listing)}
                 >
                   🤝 Claim This Listing
                 </Button>
@@ -229,6 +278,43 @@ const LiveFeed = () => {
           description="New listings will appear here automatically in real-time. Stay tuned!"
         />
       )}
+
+      <Modal
+        isOpen={claimModalOpen}
+        onClose={() => setClaimModalOpen(false)}
+        title="Claim Partial Quantity"
+        size="sm"
+      >
+        {selectedListing && (
+          <div className="space-y-4">
+            <p className="text-sm text-surface-600">
+              Select how much you want to claim from <span className="font-semibold">{selectedListing.title}</span>.
+            </p>
+
+            <Input
+              type="number"
+              min="1"
+              max={selectedListing.quantity}
+              label={`Quantity (${selectedListing.unit})`}
+              value={claimQuantity}
+              onChange={(e) => setClaimQuantity(e.target.value)}
+            />
+
+            <p className="text-xs text-surface-500">
+              Available: {selectedListing.quantity} {selectedListing.unit}
+            </p>
+
+            <div className="flex gap-2">
+              <Button variant="secondary" className="w-full" onClick={() => setClaimModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="w-full" isLoading={claiming === selectedListing._id} onClick={submitClaim}>
+                Confirm Claim
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

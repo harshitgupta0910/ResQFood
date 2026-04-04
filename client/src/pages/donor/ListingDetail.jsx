@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { listingsAPI, pickupsAPI, usersAPI } from '../../services/api';
+import { listingsAPI, claimsAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -19,6 +19,7 @@ const ListingDetail = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editQuantity, setEditQuantity] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [listingClaims, setListingClaims] = useState([]);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -34,6 +35,20 @@ const ListingDetail = () => {
     };
     fetchListing();
   }, [id, navigate]);
+
+  useEffect(() => {
+    const fetchClaims = async () => {
+      if (!user || !['donor', 'admin'].includes(user.role)) return;
+      try {
+        const res = await claimsAPI.getByListing(id);
+        setListingClaims(res.data?.claims || []);
+      } catch {
+        setListingClaims([]);
+      }
+    };
+
+    fetchClaims();
+  }, [id, user]);
 
 const handleUpdateQuantity = async () => {
       if (!editQuantity || isNaN(editQuantity) || Number(editQuantity) <= 0) return toast.error('Enter a valid quantity');
@@ -127,6 +142,38 @@ const handleUpdateQuantity = async () => {
               <TimelineItem label="Delivered" date={listing.deliveredAt} active={!!listing.deliveredAt} />
             </div>
           </Card>
+
+          {(user.role === 'donor' || user.role === 'admin') && (
+            <Card>
+              <h2 className="font-bold text-surface-900 mb-4">Claim Requests & History</h2>
+              {listingClaims.length > 0 ? (
+                <div className="space-y-3">
+                  {listingClaims.map((claim) => (
+                    <div key={claim._id} className="p-3 border border-surface-200 rounded-xl bg-surface-50">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-surface-800">{claim.ngoId?.name || 'Unknown NGO'}</p>
+                          <p className="text-xs text-surface-500">{claim.ngoId?.email || 'No email'}</p>
+                          <p className="text-xs text-surface-500">Phone: {claim.ngoId?.phone || 'Not available'}</p>
+                          <p className="text-xs text-surface-500">Org: {claim.ngoId?.organizationId?.name || 'No organization'}</p>
+                        </div>
+                        <Badge size="sm" className={getStatusColor(claim.status)}>
+                          {getStatusLabel(claim.status)}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-xs text-surface-600">
+                        <p>Claimed Quantity: <span className="font-semibold">{claim.claimedQuantity} {listing.unit}</span></p>
+                        <p>Requested At: {formatDateTime(claim.createdAt)}</p>
+                        {claim.notes ? <p>Notes: {claim.notes}</p> : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-surface-500">No claims yet for this listing.</p>
+              )}
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -160,7 +207,16 @@ const handleUpdateQuantity = async () => {
               <p className="text-sm font-medium text-surface-700">{listing.assignedVolunteer.name}</p>
               <p className="text-xs text-surface-500">{listing.assignedVolunteer.email}</p>
             </Card>
-          ) : null}{/* Quick Actions */}{(user.role === 'donor' || user.role === 'ngo' || user.role === 'admin') && (listing.status === 'available' || listing.status === 'claimed') && (<Card><h3 className="font-bold text-surface-900 mb-2">⚡ Quick Actions</h3><p className="text-sm text-surface-500 mb-3">Distribute partial amounts?</p><Button onClick={openEditModal} className="w-full" size="sm" variant="secondary">Edit Available Quantity</Button></Card>)}
+          ) : null}
+
+          {/* Quick Actions */}
+          {(user.role === 'donor' || user.role === 'admin') && (listing.status === 'available' || listing.status === 'claimed') && (
+            <Card>
+              <h3 className="font-bold text-surface-900 mb-2">⚡ Quick Actions</h3>
+              <p className="text-sm text-surface-500 mb-3">Distribute partial amounts?</p>
+              <Button onClick={openEditModal} className="w-full" size="sm" variant="secondary">Edit Available Quantity</Button>
+            </Card>
+          )}
 
           {/* Dates */}
           <Card>

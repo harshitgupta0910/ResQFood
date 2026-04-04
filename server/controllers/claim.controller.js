@@ -16,17 +16,24 @@ const claimListing = async (req, res, next) => {
 
     const listingId = req.params.id;
     const ngoId = req.user._id;
+    const requestedQty = Number(req.body.quantity);
 
-    // Atomic update - only claim if status is still 'available'
+    if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid claim quantity',
+      });
+    }
+
+    // Atomic update for partial claims: decrement quantity only when enough stock remains.
     const listing = await FoodListing.findOneAndUpdate(
       {
         _id: listingId,
         status: 'available',
+        quantity: { $gte: requestedQty },
       },
       {
-        status: 'claimed',
-        claimedBy: ngoId,
-        claimedAt: new Date(),
+        $inc: { quantity: -requestedQty },
       },
       {
         new: true,
@@ -36,9 +43,17 @@ const claimListing = async (req, res, next) => {
     if (!listing) {
       return res.status(409).json({
         success: false,
-        message: 'Listing is no longer available or does not exist',
+        message: 'Requested quantity is unavailable or listing is no longer available',
       });
     }
+
+    if (listing.quantity <= 0) {
+      listing.status = 'claimed';
+      listing.claimedBy = ngoId;
+      listing.claimedAt = new Date();
+    }
+
+    await listing.save();
 
     // Calculate fairness score
     const priorityScore = await calculateFairnessScore(ngoId, listing);
@@ -47,6 +62,7 @@ const claimListing = async (req, res, next) => {
     const claim = await Claim.create({
       listingId: listing._id,
       ngoId,
+      claimedQuantity: requestedQty,
       status: 'approved',
       priorityScore,
       notes: req.body.notes || '',
@@ -67,10 +83,11 @@ const claimListing = async (req, res, next) => {
       // Notify donor
       io.to(`user_${listing.donorId._id}`).emit('listing:claimed', {
         listing,
+        claimedQuantity: requestedQty,
         claimedBy: { name: req.user.name, email: req.user.email },
       });
 
-      // Notify all NGOs that listing is no longer available
+      // Notify NGOs to refresh listing quantity or remove when exhausted.
       io.to('role_ngo').emit('listing:updated', listing);
 
       // Send notification
@@ -83,7 +100,7 @@ const claimListing = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: { listing, claim },
+      data: { listing, claim, remainingQuantity: listing.quantity },
     });
   } catch (error) {
     next(error);
@@ -148,4 +165,92 @@ const getAllClaims = async (req, res, next) => {
   }
 };
 
-module.exports = { claimListing, getMyClaims, getAllClaims };
+// @desc    Get all received claims for donor listings
+// @route   GET /api/claims/received
+const getReceivedClaims = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const query = {};
+    if (req.user.role === 'donor') {
+      const donorListings = await FoodListing.find({ donorId: req.user._id }).select('_id');
+      query.listingId = { $in: donorListings.map((l) => l._id) };
+    }
+
+    const total = await Claim.countDocuments(query);
+    const claims = await Claim.find(query)
+      .populate({
+        path: 'listingId',
+        select: 'title quantity unit status donorId address expiryAt',
+      })
+      .populate({
+        path: 'ngoId',
+        select: 'name email phone organizationId',
+        populate: {
+          path: 'organizationId',
+          model: 'Organization',
+          select: 'name type contactPhone',
+        },
+      })
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    res.json({
+      success: true,
+      data: claims,
+      pagination: { total, page: Number(page), pages: Math.ceil(total / Number(limit)) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get claims for a specific listing (donor/admin)
+// @route   GET /api/claims/listing/:listingId
+const getClaimsForListing = async (req, res, next) => {
+  try {
+    const { listingId } = req.params;
+
+    const listing = await FoodListing.findById(listingId).select('donorId title unit');
+    if (!listing) {
+      return res.status(404).json({ success: false, message: 'Listing not found' });
+    }
+
+    const isOwner = listing.donorId.toString() === req.user._id.toString();
+    if (!isOwner && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view claims for this listing',
+      });
+    }
+
+    const claims = await Claim.find({ listingId })
+      .populate({
+        path: 'ngoId',
+        select: 'name email phone organizationId',
+        populate: {
+          path: 'organizationId',
+          model: 'Organization',
+          select: 'name type',
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        listing: {
+          _id: listing._id,
+          title: listing.title,
+          unit: listing.unit,
+        },
+        claims,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { claimListing, getMyClaims, getAllClaims, getClaimsForListing, getReceivedClaims };

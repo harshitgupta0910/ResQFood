@@ -62,6 +62,8 @@ export const listingsAPI = {
 export const claimsAPI = {
   getMy: (params) => api.get('/claims', { params }),
   getAll: (params) => api.get('/claims/all', { params }),
+  getReceived: (params) => api.get('/claims/received', { params }),
+  getByListing: (listingId) => api.get(`/claims/listing/${listingId}`),
 };
 
 // ===== Pickups API =====
@@ -87,6 +89,11 @@ export const usersAPI = {
 // ===== Analytics API =====
 export const analyticsAPI = {
   getOverview: () => api.get('/analytics/overview'),
+};
+
+// ===== Utils API =====
+export const utilsAPI = {
+  normalizeAddress: (address) => api.get('/utils/normalize-address', { params: { address } }),
 };
 
 // ===== Notifications API =====

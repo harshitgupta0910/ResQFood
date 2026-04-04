@@ -7,6 +7,7 @@ const roleNavItems = {
     { path: '/donor', icon: HiHome, label: 'Overview' },
     { path: '/donor/create', icon: HiPlusCircle, label: 'Create Listing' },
     { path: '/donor/listings', icon: HiClipboardList, label: 'My Listings' },
+    { path: '/donor/claims', icon: HiUsers, label: 'Claimed Orders' },
   ],
   ngo: [
     { path: '/ngo', icon: HiHome, label: 'Overview' },

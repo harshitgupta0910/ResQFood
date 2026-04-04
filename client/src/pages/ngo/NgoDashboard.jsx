@@ -8,6 +8,8 @@ import StatCard from '../../components/ui/StatCard';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Modal from '../../components/ui/Modal';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
 import { formatTimeAgo, getStatusColor, getStatusLabel, getCategoryIcon, getTimeUntilExpiry } from '../../utils/helpers';
 import toast from 'react-hot-toast';
@@ -18,6 +20,9 @@ const NgoDashboard = () => {
   const [claimStats, setClaimStats] = useState({ total: 0, approved: 0 });
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [claimQuantity, setClaimQuantity] = useState('');
 
   const fetchData = async () => {
     try {
@@ -25,7 +30,7 @@ const NgoDashboard = () => {
         listingsAPI.getAll({ status: 'available', limit: 10, sort: '-createdAt' }),
         claimsAPI.getMy({ limit: 1 }),
       ]);
-      setAvailableListings(listingsRes.data || []);
+      setAvailableListings((listingsRes.data || []).filter((l) => Number(l.quantity) > 0));
       setClaimStats({ total: claimsRes.pagination?.total || 0, approved: claimsRes.pagination?.total || 0 });
     } catch (err) {
       console.error(err);
@@ -39,13 +44,14 @@ const NgoDashboard = () => {
 
     // Real-time: new listings
     const handleNewListing = (listing) => {
+      if (Number(listing.quantity) <= 0 || listing.status !== 'available') return;
       setAvailableListings((prev) => [listing, ...prev].slice(0, 10));
       toast('🍲 New food listing available!', { icon: '📢' });
     };
 
     const handleListingUpdated = (listing) => {
       setAvailableListings((prev) => {
-        if (listing.status !== 'available') {
+        if (listing.status !== 'available' || Number(listing.quantity) <= 0) {
           return prev.filter((l) => l._id !== listing._id);
         }
         return prev.map((l) => (l._id === listing._id ? listing : l));
@@ -61,13 +67,45 @@ const NgoDashboard = () => {
     };
   }, []);
 
-  const handleClaim = async (listingId) => {
+  const openClaimModal = (listing) => {
+    setSelectedListing(listing);
+    setClaimQuantity(String(listing.quantity));
+    setClaimModalOpen(true);
+  };
+
+  const submitClaim = async () => {
+    if (!selectedListing) return;
+
+    const quantity = Number(claimQuantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
+
+    if (quantity > selectedListing.quantity) {
+      toast.error(`Only ${selectedListing.quantity} ${selectedListing.unit} is currently available`);
+      return;
+    }
+
+    const listing = selectedListing;
+    const listingId = listing._id;
     setClaiming(listingId);
     try {
-      await listingsAPI.claim(listingId, {});
-      toast.success('Listing claimed successfully!');
-      setAvailableListings((prev) => prev.filter((l) => l._id !== listingId));
+      const res = await listingsAPI.claim(listingId, { quantity });
+      const updatedListing = res?.data?.listing;
+
+      toast.success(`Claimed ${quantity} ${listing.unit} successfully!`);
+
+      if (updatedListing?.status === 'available' && Number(updatedListing.quantity) > 0) {
+        setAvailableListings((prev) => prev.map((l) => (l._id === listingId ? updatedListing : l)));
+      } else {
+        setAvailableListings((prev) => prev.filter((l) => l._id !== listingId));
+      }
+
       setClaimStats((prev) => ({ ...prev, total: prev.total + 1, approved: prev.approved + 1 }));
+      setClaimModalOpen(false);
+      setSelectedListing(null);
+      setClaimQuantity('');
     } catch (err) {
       toast.error(err.message || 'Failed to claim — may already be taken');
     } finally {
@@ -139,7 +177,7 @@ const NgoDashboard = () => {
                       size="sm"
                       className="flex-1"
                       isLoading={claiming === listing._id}
-                      onClick={() => handleClaim(listing._id)}
+                      onClick={() => openClaimModal(listing)}
                     >
                       Claim Now
                     </Button>
@@ -159,6 +197,43 @@ const NgoDashboard = () => {
           </Card>
         )}
       </div>
+
+      <Modal
+        isOpen={claimModalOpen}
+        onClose={() => setClaimModalOpen(false)}
+        title="Claim Partial Quantity"
+        size="sm"
+      >
+        {selectedListing && (
+          <div className="space-y-4">
+            <p className="text-sm text-surface-600">
+              Select how much you want to claim from <span className="font-semibold">{selectedListing.title}</span>.
+            </p>
+
+            <Input
+              type="number"
+              min="1"
+              max={selectedListing.quantity}
+              label={`Quantity (${selectedListing.unit})`}
+              value={claimQuantity}
+              onChange={(e) => setClaimQuantity(e.target.value)}
+            />
+
+            <p className="text-xs text-surface-500">
+              Available: {selectedListing.quantity} {selectedListing.unit}
+            </p>
+
+            <div className="flex gap-2">
+              <Button variant="secondary" className="w-full" onClick={() => setClaimModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="w-full" isLoading={claiming === selectedListing._id} onClick={submitClaim}>
+                Confirm Claim
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
