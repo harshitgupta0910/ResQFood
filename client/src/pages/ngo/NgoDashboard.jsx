@@ -155,20 +155,23 @@ const NgoDashboard = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-primary-100 to-accent-100 flex items-center justify-center text-3xl shrink-0">
+                  {listing.photos?.[0]?.url ? (
+                    <img src={listing.photos[0].url} alt="" className="w-full h-32 object-cover rounded-2xl mb-4" />
+                  ) : (
+                    <div className="w-full h-32 rounded-2xl bg-linear-to-br from-primary-100 to-accent-100 flex items-center justify-center text-5xl mb-4">
                       {getCategoryIcon(listing.category)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-surface-800 truncate">{listing.title}</h3>
-                      <p className="text-sm text-surface-500 mt-0.5">
-                        {listing.quantity} {listing.unit} · {listing.donorId?.name || 'Donor'}
-                      </p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-surface-400">
-                        <span className={expiry.isUrgent ? 'text-red-500 font-medium' : ''}>{expiry.text}</span>
-                        <span>·</span>
-                        <span>{formatTimeAgo(listing.createdAt)}</span>
-                      </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-surface-800 truncate">{listing.title}</h3>
+                    <p className="text-sm text-surface-500 mt-0.5">
+                      {listing.quantity} {listing.unit} · {listing.donorId?.name || 'Donor'}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-surface-400">
+                      <span className={expiry.isUrgent ? 'text-red-500 font-medium' : ''}>{expiry.text}</span>
+                      <span>·</span>
+                      <span>{formatTimeAgo(listing.createdAt)}</span>
                     </div>
                   </div>
 
