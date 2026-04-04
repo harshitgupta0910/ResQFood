@@ -1,5 +1,12 @@
 const express = require('express');
-const { createListing, getListings, getListingById, updateListing, deleteListing } = require('../controllers/listing.controller');
+const {
+	createListing,
+	getListings,
+	getListingById,
+	updateListing,
+	deleteListing,
+	askListingChatbot,
+} = require('../controllers/listing.controller');
 const { claimListing } = require('../controllers/claim.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
@@ -17,5 +24,6 @@ router.delete('/:id', authorize('donor', 'admin'), deleteListing);
 
 // Claim route
 router.post('/:id/claim', authorize('ngo'), claimListing);
+router.post('/:id/chatbot', authorize('ngo'), askListingChatbot);
 
 module.exports = router;

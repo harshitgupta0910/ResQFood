@@ -1,5 +1,7 @@
 const FoodListing = require('../models/FoodListing');
 const { uploadToCloudinary } = require('../config/cloudinary');
+const { generateListingChatResponse } = require('../services/gemini.service');
+const { generateAudioBuffer } = require('../services/elevenlabs.service');
 
 // @desc    Create food listing
 // @route   POST /api/listings
@@ -216,4 +218,60 @@ const deleteListing = async (req, res, next) => {
   }
 };
 
-module.exports = { createListing, getListings, getListingById, updateListing, deleteListing };
+// @desc    Ask AI assistant about current listing
+// @route   POST /api/listings/:id/chatbot
+const askListingChatbot = async (req, res, next) => {
+  try {
+    const { message, preferredLanguage = 'English', includeAudio = true } = req.body;
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+
+    const listing = await FoodListing.findById(req.params.id)
+      .populate({
+        path: 'donorId',
+        select: 'name phone organizationId',
+        populate: {
+          path: 'organizationId',
+          model: 'Organization',
+          select: 'name contactPhone',
+        },
+      });
+
+    if (!listing) {
+      return res.status(404).json({ success: false, message: 'Listing not found' });
+    }
+
+    const aiText = await generateListingChatResponse({
+      userMessage: message.trim(),
+      listing,
+      preferredLanguage,
+    });
+
+    let audioBase64 = null;
+    if (includeAudio) {
+      try {
+        const audioBuffer = await generateAudioBuffer(aiText);
+        if (audioBuffer) {
+          audioBase64 = audioBuffer.toString('base64');
+        }
+      } catch (audioError) {
+        console.log('Audio generation skipped:', audioError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        reply: aiText,
+        audioBase64,
+        audioMimeType: audioBase64 ? 'audio/mpeg' : null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createListing, getListings, getListingById, updateListing, deleteListing, askListingChatbot };

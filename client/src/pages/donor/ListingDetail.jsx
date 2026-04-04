@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { listingsAPI, claimsAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import Card from '../../components/ui/Card';
@@ -9,10 +9,12 @@ import Modal from '../../components/ui/Modal';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
 import { formatDateTime, getStatusColor, getStatusLabel, getCategoryLabel, getCategoryIcon, getConditionLabel, getTimeUntilExpiry } from '../../utils/helpers';
 import toast from 'react-hot-toast';
+import ListingAIAssistant from '../../components/chat/ListingAIAssistant';
 
 const ListingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,7 @@ const handleUpdateQuantity = async () => {
   if (!listing) return null;
 
   const expiry = getTimeUntilExpiry(listing.expiryAt);
+  const showNgoListingBot = user?.role === 'ngo' && location.pathname.startsWith('/ngo/live/');
   const donorOrgName = listing.donorId?.organizationId?.name || 'No organization';
   const donorPhone =
     listing.donorId?.phone ||
@@ -238,6 +241,7 @@ const handleUpdateQuantity = async () => {
       </div>
 
       {/* Edit Modal */}<Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Update Available Quantity"><div className="space-y-4"><p className="text-sm text-surface-600">Enter the new total available quantity for this listing:</p><input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} className="w-full rounded-xl border border-surface-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" placeholder={`Current: ${listing.quantity}`} /><div className="flex gap-3"><Button variant="secondary" onClick={() => setShowEditModal(false)} className="flex-1">Cancel</Button><Button onClick={handleUpdateQuantity} className="flex-1" isLoading={updating}>Update Quantity</Button></div></div></Modal>
+      {showNgoListingBot && <ListingAIAssistant listingId={id} />}
     </div>
   );
 };

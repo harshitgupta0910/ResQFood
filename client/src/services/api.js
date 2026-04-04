@@ -56,6 +56,7 @@ export const listingsAPI = {
   update: (id, data) => api.patch(`/listings/${id}`, data),
   delete: (id) => api.delete(`/listings/${id}`),
   claim: (id, data) => api.post(`/listings/${id}/claim`, data),
+  askChatbot: (id, data) => api.post(`/listings/${id}/chatbot`, data),
 };
 
 // ===== Claims API =====
