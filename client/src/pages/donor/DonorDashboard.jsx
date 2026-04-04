@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HiPlus, HiClock, HiCheckCircle, HiChartBar } from 'react-icons/hi';
 import useAuthStore from '../../store/authStore';
 import { useListings } from '../../hooks/useListings';
+import { claimsAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
@@ -13,15 +15,44 @@ import { formatRelativeTime, getStatusColor, getStatusLabel } from '../../utils/
 const DonorDashboard = () => {
   const { user } = useAuthStore();
   const { data, isLoading } = useListings({ donorId: user?._id, limit: 10 });
+  const [deliveredClaimsCount, setDeliveredClaimsCount] = useState(0);
 
   const listings = data?.data || [];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDeliveredClaimsCount = async () => {
+      try {
+        const res = await claimsAPI.getReceived({ limit: 200 });
+        const claims = res?.data || [];
+        const deliveredCount = claims.filter((claim) => ['delivered', 'completed'].includes(claim.status)).length;
+
+        if (isMounted) {
+          setDeliveredClaimsCount(deliveredCount);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDeliveredClaimsCount(0);
+        }
+      }
+    };
+
+    if (user?._id) {
+      fetchDeliveredClaimsCount();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?._id]);
   
   // Calculate basic stats from visible data or use default zeros
   const stats = {
     total: listings.length,
     active: listings.filter(l => l.status === 'available').length,
     picked_up: listings.filter(l => l.status === 'picked_up').length,
-    delivered: listings.filter(l => l.status === 'delivered').length,
+    delivered: deliveredClaimsCount,
   };
 
   if (isLoading) return <PageLoader />;

@@ -109,6 +109,12 @@ export const notificationsAPI = {
   markAllRead: () => api.patch('/notifications/read-all'),
 };
 
+// ===== Complaints API =====
+export const complaintsAPI = {
+  create: (data) => api.post('/complaints', data),
+  getMine: () => api.get('/complaints/my'),
+};
+
 // ===== Admin API =====
 export const adminAPI = {
   getUserMetrics: () => api.get('/admin/metrics'),

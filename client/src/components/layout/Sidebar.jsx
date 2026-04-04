@@ -8,12 +8,14 @@ const roleNavItems = {
     { path: '/donor/create', icon: HiPlusCircle, label: 'Create Listing' },
     { path: '/donor/listings', icon: HiClipboardList, label: 'My Listings' },
     { path: '/donor/claims', icon: HiUsers, label: 'Claimed Orders' },
+    { path: '/donor/complaints', icon: HiExclamationCircle, label: 'Complaints & Safety' },
     { path: '/donor/profile', icon: HiUserCircle, label: 'Profile' },
   ],
   ngo: [
     { path: '/ngo', icon: HiHome, label: 'Overview' },
     { path: '/ngo/live', icon: HiLightningBolt, label: 'Live Feed' },
     { path: '/ngo/claims', icon: HiClipboardList, label: 'My Claims' },
+    { path: '/ngo/complaints', icon: HiExclamationCircle, label: 'Complaints & Safety' },
     { path: '/ngo/profile', icon: HiUserCircle, label: 'Profile' },
   ],
   admin: [

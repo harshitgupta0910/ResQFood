@@ -1,5 +1,6 @@
 const Claim = require('../models/Claim');
 const FoodListing = require('../models/FoodListing');
+const mongoose = require('mongoose');
 const { sendMail } = require('../services/mail.service');
 const logger = require('../utils/logger');
 
@@ -76,6 +77,11 @@ const autoReleaseUnverifiedClaims = async (io) => {
 
 const runClaimVerificationCycle = async (io) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      logger.warn('Skipping claim verification cycle: MongoDB not connected');
+      return;
+    }
+
     await sendVerificationEmails();
     await autoReleaseUnverifiedClaims(io);
   } catch (error) {

@@ -1,4 +1,5 @@
 const FoodListing = require('../models/FoodListing');
+const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
 /**
@@ -7,6 +8,11 @@ const logger = require('../utils/logger');
  */
 const checkExpiredListings = async (io) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      logger.warn('Skipping expiry job: MongoDB not connected');
+      return;
+    }
+
     const now = new Date();
 
     const expiredListings = await FoodListing.updateMany(

@@ -2,14 +2,20 @@ import { useState, useEffect } from 'react';
 import { adminAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
-import { HiCheck, HiX, HiExclamationCircle, HiShieldExclamation } from 'react-icons/hi';
+import { HiCheck, HiX, HiShieldExclamation } from 'react-icons/hi';
 import dayjs from 'dayjs';
 
 const ComplaintSystem = () => {
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedComplaint, setSelectedComplaint] = useState(null);
+    const [resolutionStatus, setResolutionStatus] = useState('resolved');
+    const [resolutionNotes, setResolutionNotes] = useState('');
+    const [updating, setUpdating] = useState(false);
 
     const fetchComplaints = async () => {
         try {
@@ -27,27 +33,56 @@ const ComplaintSystem = () => {
         fetchComplaints();
     }, []);
 
-    const handleResolve = async (complaintId, resolution) => {
-        const notes = window.prompt(`Enter resolution notes for ${resolution}:`);
-        if (notes === null) return; 
+    const openResolveModal = (complaint, status) => {
+        setSelectedComplaint(complaint);
+        setResolutionStatus(status);
+        setResolutionNotes('');
+    };
+
+    const handleResolve = async () => {
+        if (!selectedComplaint) return;
+        const notes = resolutionNotes.trim();
+        if (!notes) {
+            toast.error('Please add resolution notes');
+            return;
+        }
 
         try {
-            await adminAPI.resolveComplaint(complaintId, { status: resolution, resolutionNotes: notes });
-            toast.success(`Complaint ${resolution}`);
-            fetchComplaints();
+            setUpdating(true);
+            await adminAPI.resolveComplaint(selectedComplaint._id, { status: resolutionStatus, resolutionNotes: notes });
+            toast.success(`Complaint ${resolutionStatus}`);
+            setSelectedComplaint(null);
+            setResolutionNotes('');
+            await fetchComplaints();
         } catch (err) {
             toast.error('Failed to update complaint status');
+        } finally {
+            setUpdating(false);
         }
     };
 
-    const getTypeColor = (type) => {
-        switch (type) {
-            case 'spoiled_food': return 'rose';
-            case 'fake_ngo': return 'purple';
-            case 'no_show': return 'amber';
-            case 'inappropriate_behavior': return 'red';
-            default: return 'gray';
-        }
+    const getTypeStyle = (type) => {
+        const map = {
+            spoiled_food: 'bg-rose-100 text-rose-600',
+            fake_ngo: 'bg-purple-100 text-purple-600',
+            no_show: 'bg-amber-100 text-amber-600',
+            inappropriate_behavior: 'bg-red-100 text-red-600',
+            other: 'bg-gray-100 text-gray-600',
+        };
+
+        return map[type] || map.other;
+    };
+
+    const getStatusVariant = (status) => {
+        const map = {
+            pending: 'warning',
+            investigating: 'info',
+            resolved: 'success',
+            rejected: 'default',
+            escalated: 'danger',
+        };
+
+        return map[status] || 'default';
     };
 
     return (
@@ -74,7 +109,7 @@ const ComplaintSystem = () => {
                                 {complaints.map(item => (
                                     <tr key={item._id} className="hover:bg-gray-50/50 transition-colors bg-white items-start">
                                         <td className="px-6 py-4 flex items-center gap-3">
-                                            <div className={`h-10 w-10 flex-shrink-0 bg-${getTypeColor(item.type)}-100 text-${getTypeColor(item.type)}-600 rounded-full flex items-center justify-center`}>
+                                            <div className={`h-10 w-10 flex-shrink-0 rounded-full flex items-center justify-center ${getTypeStyle(item.type)}`}>
                                                 <HiShieldExclamation className="w-5 h-5" />
                                             </div>
                                             <div>
@@ -92,7 +127,7 @@ const ComplaintSystem = () => {
                                             <p className="text-gray-700 text-sm italic border-l-2 border-gray-300 pl-3">"{item.description}"</p>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <Badge variant={item.status === 'resolved' ? 'success' : (item.status === 'rejected' ? 'neutral' : 'error')} className="mb-2 uppercase">
+                                            <Badge variant={getStatusVariant(item.status)} className="mb-2 uppercase">
                                                 {item.status}
                                             </Badge>
                                             {item.resolutionNotes && (
@@ -104,10 +139,10 @@ const ComplaintSystem = () => {
                                         <td className="px-6 py-4 text-right align-top space-x-2">
                                             {item.status === 'pending' || item.status === 'investigating' ? (
                                                 <div className="flex justify-end gap-2">
-                                                    <button onClick={() => handleResolve(item._id, 'resolved')} className="text-emerald-700 bg-emerald-100 hover:bg-emerald-200 p-2 rounded-lg" title="Resolve & Affirm">
+                                                    <button onClick={() => openResolveModal(item, 'resolved')} className="text-emerald-700 bg-emerald-100 hover:bg-emerald-200 p-2 rounded-lg" title="Resolve & Affirm">
                                                         <HiCheck className="w-5 h-5" />
                                                     </button>
-                                                    <button onClick={() => handleResolve(item._id, 'rejected')} className="text-gray-600 bg-gray-100 hover:bg-gray-200 p-2 rounded-lg" title="Reject Report">
+                                                    <button onClick={() => openResolveModal(item, 'rejected')} className="text-gray-600 bg-gray-100 hover:bg-gray-200 p-2 rounded-lg" title="Reject Report">
                                                         <HiX className="w-5 h-5" />
                                                     </button>
                                                 </div>
@@ -127,6 +162,73 @@ const ComplaintSystem = () => {
                     </div>
                 )}
             </Card>
+
+            <Modal
+                isOpen={Boolean(selectedComplaint)}
+                onClose={() => {
+                    if (!updating) {
+                        setSelectedComplaint(null);
+                        setResolutionNotes('');
+                    }
+                }}
+                title="Resolve Complaint"
+                size="md"
+            >
+                <div className="space-y-4">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-sm font-semibold text-gray-800">{selectedComplaint?.type?.replace('_', ' ')}</p>
+                        <p className="text-xs text-gray-500 mt-1">Reported by {selectedComplaint?.reportedBy?.name || 'Unknown'} against {selectedComplaint?.reportedUser?.name || 'Unknown'}</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Final Status</label>
+                        <select
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
+                            value={resolutionStatus}
+                            onChange={(e) => setResolutionStatus(e.target.value)}
+                            disabled={updating}
+                        >
+                            <option value="resolved">Resolved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="investigating">Investigating</option>
+                            <option value="escalated">Escalated</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Resolution Notes</label>
+                        <textarea
+                            rows={4}
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2.5 resize-y"
+                            placeholder="Add action taken, evidence checked, and final decision..."
+                            value={resolutionNotes}
+                            onChange={(e) => setResolutionNotes(e.target.value)}
+                            disabled={updating}
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setSelectedComplaint(null);
+                                setResolutionNotes('');
+                            }}
+                            disabled={updating}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={handleResolve}
+                            isLoading={updating}
+                        >
+                            Save Decision
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

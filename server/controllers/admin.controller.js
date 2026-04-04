@@ -182,9 +182,12 @@ exports.getLiveMetrics = async (req, res) => {
     const usersCount = await User.countDocuments();
     const pendingComplaints = await Complaint.countDocuments({ status: 'pending' });
     
-    // Calculate total meals saved (sum of quantity of completed claims)
-    const completedClaims = await Claim.find({ status: 'completed' }).populate('listingId', 'quantity');
-    const totalMealsSaved = completedClaims.reduce((acc, curr) => acc + (curr.listingId?.quantity || 0), 0);
+    // Count rescued meals from delivered claims. Keep `completed` for legacy records.
+    const rescuedMeals = await Claim.aggregate([
+      { $match: { status: { $in: ['delivered', 'completed'] } } },
+      { $group: { _id: null, total: { $sum: '$claimedQuantity' } } },
+    ]);
+    const totalMealsSaved = rescuedMeals[0]?.total || 0;
 
     const anomalies = await FoodListing.find({
       $or: [

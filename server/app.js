@@ -13,6 +13,7 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const adminRoutes = require('./routes/admin.routes');
 const utilsRoutes = require('./routes/utils.routes');
 const ratingRoutes = require('./routes/rating.routes');
+const complaintRoutes = require('./routes/complaint.routes');
 
 // Middleware imports
 const { errorHandler } = require('./middleware/error.middleware');
@@ -52,6 +53,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/utils', utilsRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 // Notification routes (inline for simplicity)
 const { protect } = require('./middleware/auth.middleware');

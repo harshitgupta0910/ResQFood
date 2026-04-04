@@ -18,6 +18,7 @@ import MyListings from './pages/donor/MyListings';
 import ListingDetail from './pages/donor/ListingDetail';
 import ReceivedClaims from './pages/donor/ReceivedClaims';
 import DonorProfile from './pages/donor/DonorProfile';
+import ComplaintCenter from './pages/common/ComplaintCenter';
 
 // NGO Pages
 import NgoDashboard from './pages/ngo/NgoDashboard';
@@ -83,6 +84,7 @@ const App = () => {
             <Route path="/donor/create" element={<ProtectedRoute roles={['donor', 'admin']}><CreateListing /></ProtectedRoute>} />
             <Route path="/donor/listings" element={<ProtectedRoute roles={['donor', 'admin']}><MyListings /></ProtectedRoute>} />
             <Route path="/donor/claims" element={<ProtectedRoute roles={['donor', 'admin']}><ReceivedClaims /></ProtectedRoute>} />
+            <Route path="/donor/complaints" element={<ProtectedRoute roles={['donor', 'admin']}><ComplaintCenter /></ProtectedRoute>} />
             <Route path="/donor/profile" element={<ProtectedRoute roles={['donor', 'admin']}><DonorProfile /></ProtectedRoute>} />
             <Route path="/donor/listings/:id" element={<ProtectedRoute roles={['donor', 'admin']}><ListingDetail /></ProtectedRoute>} />
 
@@ -91,6 +93,7 @@ const App = () => {
             <Route path="/ngo/live" element={<ProtectedRoute roles={['ngo', 'admin']}><LiveFeed /></ProtectedRoute>} />
             <Route path="/ngo/live/:id" element={<ProtectedRoute roles={['ngo', 'admin']}><ListingDetail /></ProtectedRoute>} /> {/* Reusing detail page */}
             <Route path="/ngo/claims" element={<ProtectedRoute roles={['ngo', 'admin']}><MyClaims /></ProtectedRoute>} />
+            <Route path="/ngo/complaints" element={<ProtectedRoute roles={['ngo', 'admin']}><ComplaintCenter /></ProtectedRoute>} />
             <Route path="/ngo/profile" element={<ProtectedRoute roles={['ngo', 'admin']}><NgoProfile /></ProtectedRoute>} />
 
 
