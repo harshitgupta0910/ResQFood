@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 let transporter;
 
@@ -9,6 +10,33 @@ const withTimeout = (promise, timeoutMs, message) =>
       setTimeout(() => reject(new Error(message)), timeoutMs);
     }),
   ]);
+
+const postJson = ({ hostname, path, headers, body }) =>
+  new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname,
+        path,
+        method: 'POST',
+        headers,
+      },
+      (res) => {
+        let responseBody = '';
+
+        res.on('data', (chunk) => {
+          responseBody += chunk;
+        });
+
+        res.on('end', () => {
+          resolve({ statusCode: res.statusCode || 500, body: responseBody });
+        });
+      }
+    );
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 
 const getTransporter = () => {
   if (transporter) return transporter;
@@ -73,32 +101,40 @@ const sendMail = async ({ to, subject, html, text }) => {
   }
 
   if (resendApiKey) {
-    const response = await withTimeout(
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${resendApiKey}`,
-        },
-        body: JSON.stringify({
-          from: resendFrom,
-          to: recipients,
-          subject,
-          html,
-          text,
+    try {
+      const body = JSON.stringify({
+        from: resendFrom,
+        to: recipients,
+        subject,
+        html,
+        text,
+      });
+
+      const response = await withTimeout(
+        postJson({
+          hostname: 'api.resend.com',
+          path: '/emails',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Length': Buffer.byteLength(body),
+          },
+          body,
         }),
-      }),
-      15000,
-      'Resend request timed out'
-    );
+        15000,
+        'Resend request timed out'
+      );
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Resend error ${response.status}: ${body}`);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw new Error(`Resend error ${response.statusCode}: ${response.body}`);
+      }
+
+      const payload = JSON.parse(response.body || '{}');
+      return { id: payload.id, accepted: recipients, rejected: [], provider: 'resend' };
+    } catch (resendError) {
+      const smtpReason = lastSendError ? `SMTP: ${lastSendError.message}. ` : '';
+      throw new Error(`${smtpReason}Resend: ${resendError.message}`);
     }
-
-    const payload = await response.json();
-    return { id: payload.id, accepted: recipients, rejected: [], provider: 'resend' };
   }
 
   if (lastSendError) {

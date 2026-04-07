@@ -189,6 +189,10 @@ const forgotPassword = async (req, res, next) => {
     try {
       await sendMail({ to: user.email, subject, text, html });
     } catch (mailError) {
+      console.error('Forgot password email send failed:', {
+        email: user.email,
+        reason: mailError.message,
+      });
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
