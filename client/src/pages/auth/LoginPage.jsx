@@ -175,16 +175,7 @@ const LoginPage = () => {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <label className="text-sm font-medium text-zinc-700 block">Password</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRecoveryEmail(email);
-                      setAuthMode('forgot');
-                    }}
-                    className="text-xs font-semibold text-zinc-500 hover:text-emerald-600 transition-colors"
-                  >
-                    Forgot password?
-                  </button>
+               
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
