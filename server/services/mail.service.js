@@ -1,5 +1,7 @@
 const nodemailer = require('nodemailer');
-const https = require('https');
+const dns = require('dns');
+
+dns.setDefaultResultOrder('ipv4first');
 
 let transporter;
 
@@ -10,33 +12,6 @@ const withTimeout = (promise, timeoutMs, message) =>
       setTimeout(() => reject(new Error(message)), timeoutMs);
     }),
   ]);
-
-const postJson = ({ hostname, path, headers, body }) =>
-  new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        hostname,
-        path,
-        method: 'POST',
-        headers,
-      },
-      (res) => {
-        let responseBody = '';
-
-        res.on('data', (chunk) => {
-          responseBody += chunk;
-        });
-
-        res.on('end', () => {
-          resolve({ statusCode: res.statusCode || 500, body: responseBody });
-        });
-      }
-    );
-
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
 
 const getTransporter = () => {
   if (transporter) return transporter;
@@ -69,13 +44,9 @@ const sendMail = async ({ to, subject, html, text }) => {
   const smtp = getTransporter();
   const user = process.env.EMAIL_USER;
   const fromName = process.env.EMAIL_FROM_NAME || 'ResQFood';
-  const resendApiKey = String(process.env.RESEND_API_KEY || '').trim();
-  const useResendFallback = String(process.env.USE_RESEND_FALLBACK || '').toLowerCase() === 'true';
   const shouldTrySmtp = Boolean(smtp && user);
   const smtpFrom = process.env.EMAIL_FROM || `${fromName} <${user}>`;
-  const resendFrom = process.env.MAIL_FROM || process.env.EMAIL_FROM || `${fromName} <onboarding@resend.dev>`;
   const recipients = Array.isArray(to) ? to : [to];
-  let lastSendError = null;
 
   if (shouldTrySmtp) {
     try {
@@ -98,54 +69,9 @@ const sendMail = async ({ to, subject, html, text }) => {
 
       return { id: info.messageId, accepted, rejected: info.rejected, provider: 'smtp' };
     } catch (smtpError) {
-      lastSendError = smtpError;
-      if (useResendFallback && resendApiKey) {
-        console.warn(`SMTP send failed, trying Resend fallback: ${smtpError.message}`);
-      } else {
-        console.warn(`SMTP send failed: ${smtpError.message}`);
-      }
+      console.warn(`SMTP send failed: ${smtpError.message}`);
+      throw new Error(`Email delivery failed: ${smtpError.message}`);
     }
-  }
-
-  if (useResendFallback && resendApiKey) {
-    try {
-      const body = JSON.stringify({
-        from: resendFrom,
-        to: recipients,
-        subject,
-        html,
-        text,
-      });
-
-      const response = await withTimeout(
-        postJson({
-          hostname: 'api.resend.com',
-          path: '/emails',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${resendApiKey}`,
-            'Content-Length': Buffer.byteLength(body),
-          },
-          body,
-        }),
-        15000,
-        'Resend request timed out'
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw new Error(`Resend error ${response.statusCode}: ${response.body}`);
-      }
-
-      const payload = JSON.parse(response.body || '{}');
-      return { id: payload.id, accepted: recipients, rejected: [], provider: 'resend' };
-    } catch (resendError) {
-      const smtpReason = lastSendError ? `SMTP: ${lastSendError.message}. ` : '';
-      throw new Error(`${smtpReason}Resend: ${resendError.message}`);
-    }
-  }
-
-  if (lastSendError) {
-    throw new Error(`Email delivery failed: ${lastSendError.message}`);
   }
 
   throw new Error('Email service is not configured: set SMTP credentials');
