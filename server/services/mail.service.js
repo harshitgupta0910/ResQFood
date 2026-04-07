@@ -3,6 +3,8 @@ const dns = require('dns');
 
 dns.setDefaultResultOrder('ipv4first');
 
+const SMTP_ATTEMPT_TIMEOUT_MS = Number(process.env.SMTP_ATTEMPT_TIMEOUT_MS || 5000);
+
 const withTimeout = (promise, timeoutMs, message) =>
   Promise.race([
     promise,
@@ -19,9 +21,9 @@ const createTransporter = (host, port, user, pass) => {
     port,
     secure: port === 465,
     family: 4,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
+    connectionTimeout: SMTP_ATTEMPT_TIMEOUT_MS,
+    greetingTimeout: SMTP_ATTEMPT_TIMEOUT_MS,
+    socketTimeout: SMTP_ATTEMPT_TIMEOUT_MS,
     auth: {
       user,
       pass,
@@ -57,6 +59,7 @@ const sendMail = async ({ to, subject, html, text }) => {
 
   if (shouldTrySmtp) {
     let lastError = null;
+    const attemptErrors = [];
 
     for (const port of config.ports) {
       const smtp = createTransporter(config.host, port, config.user, config.pass);
@@ -69,7 +72,7 @@ const sendMail = async ({ to, subject, html, text }) => {
             html,
             text,
           }),
-          15000,
+          SMTP_ATTEMPT_TIMEOUT_MS,
           `SMTP request timed out on port ${port}`
         );
 
@@ -87,11 +90,14 @@ const sendMail = async ({ to, subject, html, text }) => {
         };
       } catch (smtpError) {
         lastError = smtpError;
+        attemptErrors.push(`${port}:${smtpError.message}`);
         console.warn(`SMTP send failed on ${config.host}:${port} - ${smtpError.message}`);
       }
     }
 
-    throw new Error(`Email delivery failed: ${lastError ? lastError.message : 'Unknown SMTP error'}`);
+    throw new Error(
+      `Email delivery failed: ${lastError ? lastError.message : 'Unknown SMTP error'}. Attempts: ${attemptErrors.join(' | ')}`
+    );
   }
 
   throw new Error('Email service is not configured: set SMTP credentials');
