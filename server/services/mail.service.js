@@ -44,6 +44,7 @@ const sendMail = async ({ to, subject, html, text }) => {
   const smtpFrom = process.env.EMAIL_FROM || `${fromName} <${user}>`;
   const resendFrom = process.env.MAIL_FROM || process.env.EMAIL_FROM || `${fromName} <onboarding@resend.dev>`;
   const recipients = Array.isArray(to) ? to : [to];
+  let lastSendError = null;
 
   if (smtp && user) {
     try {
@@ -59,8 +60,14 @@ const sendMail = async ({ to, subject, html, text }) => {
         'SMTP request timed out'
       );
 
-      return { id: info.messageId, accepted: info.accepted, rejected: info.rejected, provider: 'smtp' };
+      const accepted = Array.isArray(info.accepted) ? info.accepted : [];
+      if (!accepted.length) {
+        throw new Error(`SMTP did not accept any recipients. Rejected: ${(info.rejected || []).join(', ') || 'unknown'}`);
+      }
+
+      return { id: info.messageId, accepted, rejected: info.rejected, provider: 'smtp' };
     } catch (smtpError) {
+      lastSendError = smtpError;
       console.warn(`SMTP send failed, trying Resend fallback: ${smtpError.message}`);
     }
   }
@@ -94,8 +101,11 @@ const sendMail = async ({ to, subject, html, text }) => {
     return { id: payload.id, accepted: recipients, rejected: [], provider: 'resend' };
   }
 
-  console.warn('Mail service skipped: SMTP and Resend are not configured');
-  return { sent: false, skipped: true };
+  if (lastSendError) {
+    throw new Error(`Email delivery failed: ${lastSendError.message}`);
+  }
+
+  throw new Error('Email service is not configured: set SMTP credentials or RESEND_API_KEY');
 };
 
 module.exports = { sendMail };
