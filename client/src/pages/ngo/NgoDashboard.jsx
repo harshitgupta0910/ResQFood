@@ -94,7 +94,7 @@ const NgoDashboard = () => {
       const res = await listingsAPI.claim(listingId, { quantity });
       const updatedListing = res?.data?.listing;
 
-      toast.success(`Claimed ${quantity} ${listing.unit} successfully!`);
+      toast.success(`Claimed ${quantity} ${listing.unit}. Check your email and verify within 10 minutes.`);
 
       if (updatedListing?.status === 'available' && Number(updatedListing.quantity) > 0) {
         setAvailableListings((prev) => prev.map((l) => (l._id === listingId ? updatedListing : l)));

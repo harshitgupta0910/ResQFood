@@ -16,7 +16,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'https://res-q-food-five.vercel.app',
+    origin: process.env.CLIENT_URL || 'https://res-q-food-00.vercel.app',
     methods: ['GET', 'POST'],
     credentials: true,
   },

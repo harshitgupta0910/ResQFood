@@ -1,14 +1,28 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { HiMail, HiLockClosed, HiArrowRight } from 'react-icons/hi';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
+import { authAPI } from '../../services/api';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [authMode, setAuthMode] = useState('login');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const { login, isLoading } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const resetToken = searchParams.get('resetToken');
+
+  useEffect(() => {
+    if (resetToken) {
+      setAuthMode('reset');
+    }
+  }, [resetToken]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,6 +33,52 @@ const LoginPage = () => {
       navigate(roleRoutes[user.role] || '/');
     } catch (error) {
       toast.error(error.message || 'Login failed');
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setIsActionLoading(true);
+    try {
+      await authAPI.forgotPassword({ email: recoveryEmail.trim().toLowerCase() });
+      toast.success('If the account exists, a reset link has been sent to your email.');
+      setAuthMode('login');
+    } catch (error) {
+      toast.error(error.message || 'Unable to send reset email');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+
+    if (!resetToken) {
+      toast.error('Invalid reset link. Please request a new one.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    setIsActionLoading(true);
+    try {
+      await authAPI.resetPassword(resetToken, {
+        password: newPassword,
+        confirmPassword,
+      });
+
+      toast.success('Password reset successful. Please sign in.');
+      setNewPassword('');
+      setConfirmPassword('');
+      setSearchParams({});
+      setAuthMode('login');
+    } catch (error) {
+      toast.error(error.message || 'Unable to reset password');
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -81,67 +141,190 @@ const LoginPage = () => {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-semibold text-zinc-900 tracking-tight">Welcome back</h2>
-            <p className="text-zinc-500 mt-2 text-base">Sign in to your dashboard to continue.</p>
+            <h2 className="text-3xl font-semibold text-zinc-900 tracking-tight">
+              {authMode === 'login' ? 'Welcome back' : authMode === 'forgot' ? 'Recover your account' : 'Set a new password'}
+            </h2>
+            <p className="text-zinc-500 mt-2 text-base">
+              {authMode === 'login' && 'Sign in to your dashboard to continue.'}
+              {authMode === 'forgot' && 'Enter your account email and we will send a password reset link.'}
+              {authMode === 'reset' && 'Enter your new password to complete account recovery.'}
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            
-            {/* Custom Input: Email */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-700 block">Email Address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <HiMail className="text-zinc-400 w-5 h-5" />
+          {authMode === 'login' && (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Custom Input: Email */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-700 block">Email Address</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <HiMail className="text-zinc-400 w-5 h-5" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@organization.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
+                  />
                 </div>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@organization.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
-                />
               </div>
-            </div>
 
-            {/* Custom Input: Password */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-700 block">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <HiLockClosed className="text-zinc-400 w-5 h-5" />
+              {/* Custom Input: Password */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-sm font-medium text-zinc-700 block">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecoveryEmail(email);
+                      setAuthMode('forgot');
+                    }}
+                    className="text-xs font-semibold text-zinc-500 hover:text-emerald-600 transition-colors"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <HiLockClosed className="text-zinc-400 w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Dark Sleek Button */}
-            <div className="pt-3">
+              {/* Dark Sleek Button */}
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-800/50 text-white font-medium py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 group border-none"
+                >
+                  {isLoading ? 'Signing in...' : 'Sign In to Dashboard'}
+                  {!isLoading && <HiArrowRight className="group-hover:translate-x-1 transition-transform" />}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {authMode === 'forgot' && (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-700 block">Account Email</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <HiMail className="text-zinc-400 w-5 h-5" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@organization.com"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={isActionLoading}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-800/50 text-white font-medium py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 group border-none"
+                >
+                  {isActionLoading ? 'Sending link...' : 'Send Reset Link'}
+                  {!isActionLoading && <HiArrowRight className="group-hover:translate-x-1 transition-transform" />}
+                </button>
+              </div>
+
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-800/50 text-white font-medium py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 group border-none"
+                type="button"
+                onClick={() => setAuthMode('login')}
+                className="w-full text-sm font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
               >
-                {isLoading ? 'Signing in...' : 'Sign In to Dashboard'}
-                {!isLoading && <HiArrowRight className="group-hover:translate-x-1 transition-transform" />}
+                Back to Sign In
               </button>
-            </div>
-          </form>
+            </form>
+          )}
 
-          <p className="text-center text-sm text-zinc-500 mt-8">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-zinc-900 font-medium hover:text-emerald-600 transition-colors underline decoration-zinc-300 underline-offset-4 hover:decoration-emerald-500">
-              Create one
-            </Link>
-          </p>
+          {authMode === 'reset' && (
+            <form onSubmit={handleResetPassword} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-700 block">New Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <HiLockClosed className="text-zinc-400 w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-700 block">Confirm Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <HiLockClosed className="text-zinc-400 w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Re-enter new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={isActionLoading}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-800/50 text-white font-medium py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 group border-none"
+                >
+                  {isActionLoading ? 'Updating password...' : 'Reset Password'}
+                  {!isActionLoading && <HiArrowRight className="group-hover:translate-x-1 transition-transform" />}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchParams({});
+                  setAuthMode('login');
+                }}
+                className="w-full text-sm font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+              >
+                Back to Sign In
+              </button>
+            </form>
+          )}
+
+          {authMode === 'login' && (
+            <p className="text-center text-sm text-zinc-500 mt-8">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-zinc-900 font-medium hover:text-emerald-600 transition-colors underline decoration-zinc-300 underline-offset-4 hover:decoration-emerald-500">
+                Create one
+              </Link>
+            </p>
+          )}
 
           {/* Clean Demo Credentials Box */}
           {/* <div className="mt-10 border border-zinc-200 bg-white/50 rounded-xl p-5 shadow-sm">

@@ -7,6 +7,8 @@ const crypto = require('crypto');
 
 const hashOtp = (otp) => crypto.createHash('sha256').update(String(otp)).digest('hex');
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const VERIFICATION_EMAIL_DELAY_MS = 30 * 1000;
+const VERIFICATION_VALIDITY_MS = 10 * 60 * 1000;
 
 // @desc    Claim a listing (supports partial quantity with verification workflow)
 // @route   POST /api/listings/:id/claim
@@ -64,8 +66,8 @@ const claimListing = async (req, res, next) => {
 
     const now = new Date();
     const verificationToken = crypto.randomBytes(24).toString('hex');
-    const verificationEmailAt = new Date(now.getTime() + 30 * 1000);
-    const verificationDeadline = new Date(now.getTime() + 60 * 1000);
+    const verificationEmailAt = new Date(now.getTime() + VERIFICATION_EMAIL_DELAY_MS);
+    const verificationDeadline = new Date(now.getTime() + VERIFICATION_VALIDITY_MS);
 
     // Upsert allows re-claim attempts by same NGO for same listing after timeout.
     const claim = await Claim.findOneAndUpdate(
@@ -102,8 +104,9 @@ const claimListing = async (req, res, next) => {
           <p>You claimed <strong>${requestedQty} ${listing.unit}</strong> of <strong>${listing.title}</strong>.</p>
           <p>Pickup address: ${listing.address || 'N/A'}</p>
           <p>You will receive a verification mail in 30 seconds.</p>
+          <p>Verification link stays valid for 10 minutes from claim time.</p>
         `,
-        text: `You claimed ${requestedQty} ${listing.unit} of ${listing.title}. Pickup: ${listing.address || 'N/A'}. Verification mail will follow in 30 seconds.`,
+        text: `You claimed ${requestedQty} ${listing.unit} of ${listing.title}. Pickup: ${listing.address || 'N/A'}. Verification mail will follow in 30 seconds and the link will stay valid for 10 minutes.`,
       });
     } catch (mailErr) {
       console.error('Immediate claim mail failed:', mailErr.message);
@@ -156,7 +159,7 @@ const claimListing = async (req, res, next) => {
 // @route   GET /api/claims/verify/:token
 const verifyClaimByToken = async (req, res, next) => {
   try {
-    const clientUrl = process.env.CLIENT_URL || 'https://res-q-food-five.vercel.app';
+    const clientUrl = process.env.CLIENT_URL || 'https://res-q-food-00.vercel.app';
     const { token } = req.params;
     const claim = await Claim.findOne({ verificationToken: token }).populate('listingId ngoId');
 

@@ -23,7 +23,7 @@ const app = express();
 // Security & parsing middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'https://res-q-food-five.vercel.app',
+  origin: process.env.CLIENT_URL || 'https://res-q-food-00.vercel.app',
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

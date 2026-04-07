@@ -31,9 +31,9 @@ const sendVerificationEmails = async () => {
           <p>Please confirm that you are coming to collect <strong>${claim.claimedQuantity} ${listing.unit}</strong> of <strong>${listing.title}</strong>.</p>
           <p>Pickup address: ${listing.address || 'N/A'}</p>
           <p><a href="${verifyUrl}" target="_blank" rel="noopener noreferrer">Click here to verify pickup</a></p>
-          <p>This link expires soon.</p>
+          <p>This link is valid for 10 minutes from claim time.</p>
         `,
-        text: `Verify pickup for ${listing.title}: ${verifyUrl}`,
+        text: `Verify pickup for ${listing.title}: ${verifyUrl}. Link is valid for 10 minutes from claim time.`,
       });
 
       claim.verificationEmailSent = true;

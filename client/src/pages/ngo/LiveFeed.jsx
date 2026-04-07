@@ -158,7 +158,7 @@ const LiveFeed = () => {
       const res = await listingsAPI.claim(id, { quantity });
       const updatedListing = res?.data?.listing;
 
-      toast.success(`Claimed ${quantity} ${selectedListing.unit} successfully!`);
+      toast.success(`Claimed ${quantity} ${selectedListing.unit}. Check your email and verify within 10 minutes.`);
 
       if (updatedListing?.status === 'available') {
         setListings((prev) => prev.map((l) => (l._id === id ? updatedListing : l))); 

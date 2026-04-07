@@ -99,7 +99,7 @@ const extractDonationData = async ({ userMessage, currentData = {}, preferredLan
     headers: {
       Authorization: `Bearer ${openRouterKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.CLIENT_URL || 'https://res-q-food-five.vercel.app',
+      'HTTP-Referer': process.env.CLIENT_URL || 'https://res-q-food-00.vercel.app',
       'X-Title': 'ResQFood Donor Voice Intake',
     },
     body: JSON.stringify({

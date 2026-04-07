@@ -125,8 +125,8 @@ From client folder:
 
 Default local ports:
 
-- Frontend: http://localhost:5173
-- Backend: http://localhost:5000
+- Frontend: https://res-q-food-00.vercel.app
+- Backend: https://resqfood-backend-qqap.onrender.com
 
 ## Environment Variables
 
@@ -139,8 +139,8 @@ Required:
 - MONGO_URI=your_mongodb_connection_string
 - JWT_SECRET=your_jwt_secret
 - JWT_EXPIRE=7d
-- CLIENT_URL=http://localhost:5173
-- BACKEND_BASE_URL=http://localhost:5000
+- CLIENT_URL=https://res-q-food-00.vercel.app
+- BACKEND_BASE_URL=https://resqfood-backend-qqap.onrender.com
 
 Email/OTP:
 
@@ -170,11 +170,11 @@ AI and maps (optional based on features used):
 
 Recommended for production-like local testing:
 
-- VITE_SERVER_URL=http://localhost:5000
+- VITE_SERVER_URL=https://resqfood-backend-qqap.onrender.com
 
 Optional explicit API base override:
 
-- VITE_API_BASE_URL=http://localhost:5000/api
+- VITE_API_BASE_URL=https://resqfood-backend-qqap.onrender.com/api
 
 Note: client/src/services/api.js automatically selects API base using:
 
