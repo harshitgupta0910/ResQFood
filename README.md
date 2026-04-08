@@ -13,12 +13,6 @@ ResQFood addresses this gap by creating one digital flow for:
 - NGOs to discover and claim available food in real time.
 - Admins to moderate quality, resolve disputes, and keep the system fair.
 
-This leads to:
-
-- Less food waste.
-- Faster redistribution.
-- Better trust through verification and traceability.
-
 ## Live Links
 
 - Frontend (Vercel): https://res-q-food-00.vercel.app/
@@ -35,6 +29,12 @@ This leads to:
 - Analytics dashboard to track platform impact.
 
 ## Screenshots
+
+
+### Complete Architechture
+![ResQFood Architechture](./WhatsApp Image-2026-)
+
+
 
 ### Home and Public Experience
 ![ResQFood Screenshot 1](./i1.png)
