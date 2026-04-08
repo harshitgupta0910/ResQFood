@@ -2,8 +2,6 @@
 
 ResQFood is a full-stack MERN platform that connects food donors, NGOs, and admins to reduce food waste and deliver edible surplus to people who need it.
 
-It is built for speed, trust, and accountability, with real-time workflows, verification, complaint handling, and transparent impact metrics.
-
 ## Why This Project Matters
 
 Every day, large amounts of good food are wasted while many communities remain food insecure.
@@ -12,12 +10,6 @@ ResQFood addresses this gap by creating one digital flow for:
 - Donors to list surplus food quickly.
 - NGOs to discover and claim available food in real time.
 - Admins to moderate quality, resolve disputes, and keep the system fair.
-
-This leads to:
-
-- Less food waste.
-- Faster redistribution.
-- Better trust through verification and traceability.
 
 ## Live Links
 
@@ -36,69 +28,39 @@ This leads to:
 
 ## Screenshots
 
+
+### Complete Architechture
+![ResQFood Architechture](./architechture.jpeg)
+
+
+
 ### Home and Public Experience
 ![ResQFood Screenshot 1](./i1.png)
+
+### NGO (RAG BASED) chat bot
+![ResQFood chatbot-1](./chat-bot-feature.jpeg)
+
+
+#### for more infomation refer to repo : ![Repo Link](https://github.com/himanshudubey7/chat-bot-resq)
+
 
 ### Dashboard and Listings
 ![ResQFood Screenshot 2](./i2.png)
 
+### Voice Intake form filling Automation bot
+![ResQFood Chatbot-2](./screenshot-1.jpeg)
+#### for more infomation refer to repo : ![Repo Link](https://github.com/himanshudubey7/voice-intake-service)
+
+
 ### Claim and Verification Flow
 ![ResQFood Screenshot 3](./i3.png)
 
+### OTP Verification Flow
+![ResQFood OTP VERIFICATION ](./otp-1.jpeg)
+
+
 ### Admin and Moderation Views
 ![ResQFood Screenshot 4](./i4.png)
-
-## Tech Stack
-
-### Frontend
-
-- React 19
-- Vite 8
-- React Router DOM 7
-- Axios
-- Zustand
-- TanStack React Query
-- Tailwind CSS 4
-- Socket.IO Client
-- Recharts
-
-### Backend
-
-- Node.js
-- Express
-- MongoDB with Mongoose
-- JWT Authentication
-- Socket.IO
-- Multer + Cloudinary (media upload)
-- Nodemailer (email/OTP flows)
-- Gemini/OpenRouter integrations
-
-### Dev Tooling
-
-- ESLint
-- Nodemon
-- Git + GitHub
-- Vercel (frontend deploy)
-- Render (backend deploy)
-
-## Monorepo Structure
-
-This repository contains two applications:
-
-- client: React + Vite frontend
-- server: Node.js + Express backend
-
-Important folders:
-
-- client/src/pages: role-based views (auth, donor, ngo, admin)
-- client/src/components: reusable UI, layout, chat, and utility components
-- client/src/services/api.js: API layer and endpoint modules
-- server/routes: REST route definitions
-- server/controllers: request handlers and business logic
-- server/models: Mongoose schemas
-- server/services: AI, fairness, email, routing, notifications
-- server/jobs: expiry and claim-verification background jobs
-- server/sockets: socket authentication and event handling
 
 ## Key Modules by Role
 
@@ -162,11 +124,6 @@ cd client
 npm run dev
 ```
 
-Default local URLs:
-
-- Frontend: http://localhost:5173
-- Backend: http://localhost:5000
-
 ## Environment Variables
 
 ### Backend (server/.env)
@@ -202,8 +159,6 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 ```
 
-Optional AI and Maps:
-
 ```env
 OPEN_ROUTER=
 OPEN_ROUTER_MODEL=google/gemini-2.5-flash
@@ -225,30 +180,7 @@ Optional direct API override:
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
-API base selection in frontend:
-
-1. Use VITE_API_BASE_URL if set.
-2. Otherwise use /api in development.
-3. Otherwise use VITE_SERVER_URL + /api in production.
-
-## Scripts
-
-### Backend
-
-- npm run dev: start server with nodemon
-- npm start: production start
-- npm run seed: run seed script
-
-### Frontend
-
-- npm run dev: start Vite dev server
-- npm run build: production build
-- npm run preview: preview production build
-- npm run lint: lint source code
-
 ## API Overview
-
-Base path: /api
 
 Route groups:
 
@@ -264,64 +196,4 @@ Route groups:
 - /api/complaints
 - /api/notifications
 
-Health endpoint:
 
-- GET /api/health
-
-## Deployment Notes
-
-### Backend (Render)
-
-- Root Directory: server
-- Build Command: npm install
-- Start Command: npm start
-
-Important:
-
-- CLIENT_URL should match your frontend domain.
-- BACKEND_BASE_URL should match your backend public URL.
-
-### Frontend (Vercel)
-
-- Framework: Vite
-- Root Directory: client
-- Install Command: npm install
-- Build Command: npm run build
-- Output Directory: dist
-
-Required env:
-
-- VITE_SERVER_URL=https://resqfood-backend-qqap.onrender.com
-
-## Troubleshooting
-
-### 404 on Login or Signup in Production
-
-- Verify VITE_SERVER_URL in Vercel.
-- Redeploy frontend after env updates.
-- Verify backend CORS CLIENT_URL matches your frontend domain.
-
-### Render Root URL Shows Not Found
-
-- Expected behavior if / is not defined.
-- Use /api/health or other /api endpoints.
-
-### CORS Errors
-
-- Check CLIENT_URL value in backend env.
-- Restart/redeploy backend after changes.
-
-### Socket Connection Delays
-
-- Free-tier cold starts can delay first connection.
-- Keep backend active for better real-time responsiveness.
-
-## Security Notes
-
-- Do not commit real .env values.
-- Use strong JWT secrets.
-- Rotate third-party API keys periodically.
-
-## License
-
-This project is currently unlicensed. Add a LICENSE file before public distribution if needed.
