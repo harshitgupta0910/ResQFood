@@ -48,58 +48,6 @@ This leads to:
 ### Admin and Moderation Views
 ![ResQFood Screenshot 4](./i4.png)
 
-## Tech Stack
-
-### Frontend
-
-- React 19
-- Vite 8
-- React Router DOM 7
-- Axios
-- Zustand
-- TanStack React Query
-- Tailwind CSS 4
-- Socket.IO Client
-- Recharts
-
-### Backend
-
-- Node.js
-- Express
-- MongoDB with Mongoose
-- JWT Authentication
-- Socket.IO
-- Multer + Cloudinary (media upload)
-- Nodemailer (email/OTP flows)
-- Gemini/OpenRouter integrations
-
-### Dev Tooling
-
-- ESLint
-- Nodemon
-- Git + GitHub
-- Vercel (frontend deploy)
-- Render (backend deploy)
-
-## Monorepo Structure
-
-This repository contains two applications:
-
-- client: React + Vite frontend
-- server: Node.js + Express backend
-
-Important folders:
-
-- client/src/pages: role-based views (auth, donor, ngo, admin)
-- client/src/components: reusable UI, layout, chat, and utility components
-- client/src/services/api.js: API layer and endpoint modules
-- server/routes: REST route definitions
-- server/controllers: request handlers and business logic
-- server/models: Mongoose schemas
-- server/services: AI, fairness, email, routing, notifications
-- server/jobs: expiry and claim-verification background jobs
-- server/sockets: socket authentication and event handling
-
 ## Key Modules by Role
 
 ### Donor
