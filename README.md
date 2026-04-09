@@ -38,7 +38,7 @@ ResQFood addresses this gap by creating one digital flow for:
 ![ResQFood Screenshot 1](./i1.png)
 
 ### NGO (RAG BASED) chat bot
-![ResQFood chatbot-1](./chat-bot-feature.jpeg)
+![ResQFood chatbot-1](./chat-bot-feature-3.jpeg)
 
 
 #### for more infomation refer to repo : ![Repo Link](https://github.com/himanshudubey7/chat-bot-resq)
